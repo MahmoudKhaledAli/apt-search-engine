@@ -7,7 +7,10 @@ package indexer;
 
 import java.io.*;
 import java.nio.file.*;
+import java.sql.SQLException;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.*;
 import org.jsoup.*;
 import org.jsoup.nodes.*;
@@ -18,6 +21,8 @@ import org.jsoup.select.*;
  * @author Mahmoud
  */
 public class Indexer {
+
+    static DBModule indexerDB;
 
     public static boolean isHTML(Path filePath) {
         String extension = "";
@@ -37,7 +42,7 @@ public class Indexer {
     public static ArrayList<Path> getAllFileNames() throws IOException {
         ArrayList<Path> paths = new ArrayList<>();
 
-        try (Stream<Path> filePathStream = Files.walk(Paths.get(""))) {
+        try (Stream<Path> filePathStream = Files.walk(Paths.get(System.getProperty("user.dir") + "/docs"))) {
             filePathStream.forEach(filePath -> {
                 if (Files.isRegularFile(filePath) && isHTML(filePath)) {
                     paths.add(filePath);
@@ -100,7 +105,7 @@ public class Indexer {
         if (title != null) {
             String[] words = title.text().split("[^a-zA-Z0-9]+");
             for (String word : words) {
-                DBModule.insertWord(word, docID, 0, 0);
+                indexerDB.insertWord(word, docID, 0, 0);
             }
         }
 
@@ -130,7 +135,7 @@ public class Indexer {
             int tag = convertTag(elem.tag().getName());
             int place = i + 1;
 
-            DBModule.insertWord(words[i], docID, place, tag);
+            indexerDB.insertWord(words[i], docID, place, tag);
             wordsCount.put(words[i], wordCount + 1);
         }
 
@@ -143,8 +148,9 @@ public class Indexer {
      */
     public static void main(String[] args) throws IOException {
         // TODO code application logic here
+        indexerDB = new DBModule();
+        indexerDB.initDB();
         ArrayList<Path> filePaths = getAllFileNames();
-
         for (int i = 0; i < filePaths.size(); i++) {
             File document = new File(filePaths.get(i).toString());
             Document doc = Jsoup.parse(document, "UTF-8", "");

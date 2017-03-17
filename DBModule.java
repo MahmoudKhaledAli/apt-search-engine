@@ -17,12 +17,35 @@ public class DBModule {
 
     // JDBC driver name and database URL
     static final String JDBC_DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
-    static final String DB_URL = "jdbc:derby://localhost:1527/Indexer";
+    static final String DB_URL = "jdbc:derby://localhost:1527/SearchEngineDB;create=true";
 
-    public static Connection getConnection() throws ClassNotFoundException, SQLException {
+    public void initDB() {
+        Connection conn = null;
+        Statement stmt = null;
+        
+        try {
+            conn = getConnection();
+            String createTableQuery = "create table \"APP\".Indexer "
+                    + "("
+                    + "	WORD VARCHAR(1000) not null, "
+                    + "	DOCUMENT VARCHAR(1000) not null, "
+                    + "	PLACE INTEGER not null, "
+                    + "	TAG INTEGER default 7, "
+                    + "	primary key (WORD, DOCUMENT, PLACE))";
+            stmt = conn.createStatement();
+            stmt.execute(createTableQuery);
+            closeConnection(conn);
+        } catch (SQLException se) {
+            
+        } catch (ClassNotFoundException ex) {
+            Logger.getLogger(DBModule.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public Connection getConnection() throws ClassNotFoundException, SQLException {
         Connection conn = null;
         //STEP 2: Register JDBC driver
-        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+        Class.forName(JDBC_DRIVER);
 
         //STEP 3: Open a connection
         System.out.println("Connecting to a selected database...");
@@ -31,11 +54,11 @@ public class DBModule {
         return conn;
     }
 
-    public static void closeConnection(Connection conn) throws SQLException {
+    public void closeConnection(Connection conn) throws SQLException {
         conn.close();
     }
 
-    public static void insertWord(String word, String docID, int place, int tag) {
+    public void insertWord(String word, String docID, int place, int tag) {
 
         Statement stmt = null;
         Connection conn = null;
