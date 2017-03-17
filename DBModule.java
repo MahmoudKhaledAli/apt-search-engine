@@ -4,6 +4,7 @@
  * and open the template in the editor.
  */
 package indexer;
+
 import java.sql.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -38,12 +39,13 @@ public class DBModule {
 
         Statement stmt = null;
         Connection conn = null;
-        
+
         try {
             conn = getConnection();
             stmt = conn.createStatement();
             String sql = "INSERT INTO WORDS "
-                    + "VALUES ('" + word + "', '" + docID + "', " + place + ", " + tag + ")";
+                    + "VALUES ('" + word + "', '" + docID + "', "
+                    + place + ", " + tag + ")";
             System.out.println(sql);
             stmt.executeUpdate(sql);
         } catch (ClassNotFoundException | SQLException ex) {
@@ -54,7 +56,7 @@ public class DBModule {
                 if (stmt != null) {
                     closeConnection(conn);
                 }
-            } catch(SQLException ex) {
+            } catch (SQLException ex) {
                 //do nothing
             }
             try {

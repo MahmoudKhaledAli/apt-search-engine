@@ -5,14 +5,13 @@
  */
 package indexer;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.*;
 import java.util.*;
-import org.jsoup.Jsoup;
-import org.jsoup.helper.Validate;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
+import java.util.stream.*;
+import org.jsoup.*;
+import org.jsoup.nodes.*;
+import org.jsoup.select.*;
 
 /**
  *
@@ -20,11 +19,41 @@ import org.jsoup.select.Elements;
  */
 public class Indexer {
 
+    public static boolean isHTML(Path filePath) {
+        String extension = "";
+        String fileName = filePath.toString();
+
+        int i = fileName.lastIndexOf('.');
+        if (i >= 0) {
+            extension = fileName.substring(i + 1);
+        }
+        return extension.equals("html");
+    }
+
     /**
-     * @param args the command line arguments
+     *
+     * @return @throws IOException
      */
-    
-    //Converts a tag from a string to a rank in integers
+    public static ArrayList<Path> getAllFileNames() throws IOException {
+        ArrayList<Path> paths = new ArrayList<>();
+
+        try (Stream<Path> filePathStream = Files.walk(Paths.get(""))) {
+            filePathStream.forEach(filePath -> {
+                if (Files.isRegularFile(filePath) && isHTML(filePath)) {
+                    paths.add(filePath);
+                    System.out.println(filePath);
+                }
+            });
+        }
+        return paths;
+    }
+
+    /**
+     * Converts a tag from string format to its rank
+     *
+     * @param tag The HTML tag in string format
+     * @return Returns the rank of HTML tag
+     */
     public static int convertTag(String tag) {
         switch (tag) {
             case "h1":
@@ -43,72 +72,83 @@ public class Indexer {
                 return 7;
         }
     }
-    
-    //checks if a tag is a header or a paragraph or body
+
+    /**
+     * Checks if a tag is a header or a paragraph or body
+     *
+     * @param tag The HTML tag in string format
+     * @return Returns true if the tag indicates the position of the element
+     */
     public static boolean isGoodTag(String tag) {
-        if (tag.equals("h1")) {
-            return true;
-        } else if (tag.equals("h2")) {
-            return true;
-        } else if (tag.equals("h3")) {
-            return true;
-        } else if (tag.equals("h4")) {
-            return true;
-        } else if (tag.equals("h5")) {
-            return true;
-        } else if (tag.equals("h6")) {
-            return true;
-        } else if (tag.equals("p")) {
-            return true;
-        } else if (tag.equals("body")) {
-            return true;
-        } else if (tag.equals("#root")) {
-            return true;
-        }
-        return false;
+        return tag.equals("h1") || tag.equals("h2") || tag.equals("h3")
+                || tag.equals("h4") || tag.equals("h5") || tag.equals("h6")
+                || tag.equals("p") || tag.equals("body") || tag.equals("#root");
     }
-    
-    //to index a single document
+
+    /**
+     * Indexes a single page
+     *
+     * @param doc The HTML document
+     * @param docID The ID of the HTML document
+     */
     public static void indexPage(Document doc, String docID) {
         Element title = doc.select("title").first();
         Element body = doc.select("body").first();
         Map wordsCount = new HashMap();
-        
+
         //Indexing the page title
         if (title != null) {
-            String[] words = title.text().split("[^a-zA-Z0-9']+");
+            String[] words = title.text().split("[^a-zA-Z0-9]+");
             for (String word : words) {
                 DBModule.insertWord(word, docID, 0, 0);
             }
         }
 
-        
         String pageText = body.text();
-        String[] words = pageText.split("[^a-zA-Z0-9']+");
-        
+        String[] words = pageText.split("[^a-zA-Z0-9]+");
+
         //Indexing the words of the page
         for (int i = words.length - 1; i >= 0; i--) {
+            //Don't index 1 letter words
+            if (words[i].length() == 1) {
+                continue;
+            }
+
             if (!wordsCount.containsKey(words[i])) {
                 wordsCount.put(words[i], 0);
             }
+
             Elements elemList = doc.getElementsContainingText(words[i]);
-            Element elem = elemList.get(elemList.size() - (int) (wordsCount.get(words[i])) - 1);
+            int wordCount = (int) (wordsCount.get(words[i]));
+            Element elem = elemList.get(elemList.size() - 1 - wordCount);
+
+            //Loop until we find a header or paragraph tag
             while (!isGoodTag(elem.tagName())) {
                 elem = elem.parent();
             }
-            DBModule.insertWord(words[i], docID, i + 1, convertTag(elem.tag().getName()));
-            System.out.println(elem.tag().getName());
-            wordsCount.put(words[i], (int) (wordsCount.get(words[i])) + 1);
+
+            int tag = convertTag(elem.tag().getName());
+            int place = i + 1;
+
+            DBModule.insertWord(words[i], docID, place, tag);
+            wordsCount.put(words[i], wordCount + 1);
         }
 
     }
 
-
+    /**
+     *
+     * @param args
+     * @throws IOException
+     */
     public static void main(String[] args) throws IOException {
         // TODO code application logic here
+        ArrayList<Path> filePaths = getAllFileNames();
 
-        File document = new File("Hello.html");
-        Document doc = Jsoup.parse(document, "UTF-8", "");
-        indexPage(doc, "1");
+        for (int i = 0; i < filePaths.size(); i++) {
+            File document = new File(filePaths.get(i).toString());
+            Document doc = Jsoup.parse(document, "UTF-8", "");
+            indexPage(doc, Integer.toString(i));
+        }
     }
 }
