@@ -7,10 +7,7 @@ package indexer;
 
 import java.io.*;
 import java.nio.file.*;
-import java.sql.SQLException;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.*;
 import org.jsoup.*;
 import org.jsoup.nodes.*;
@@ -23,6 +20,26 @@ import org.jsoup.select.*;
 public class Indexer {
 
     static DBModule indexerDB;
+
+    public static void initDB() {
+        String createTableQuery = "create table \"APP\".Indexer "
+                + "( "
+                + "WORD VARCHAR(1000) not null, "
+                + "DOCUMENT VARCHAR(1000) not null, "
+                + "PLACE INTEGER not null, "
+                + "TAG INTEGER default 7, "
+                + "primary key (WORD, DOCUMENT, PLACE))";
+
+        indexerDB.executeQuery(createTableQuery);
+    }
+
+    public static void insertWord(String word, String docID, int place, int tag) {
+
+        String sqlQuery = "INSERT INTO Indexer "
+                + "VALUES ('" + word + "', '" + docID + "', "
+                + place + ", " + tag + ")";
+        indexerDB.executeQuery(sqlQuery);
+    }
 
     public static boolean isHTML(Path filePath) {
         String extension = "";
@@ -61,6 +78,8 @@ public class Indexer {
      */
     public static int convertTag(String tag) {
         switch (tag) {
+            case "title":
+                return 0;
             case "h1":
                 return 1;
             case "h2":
@@ -87,7 +106,7 @@ public class Indexer {
     public static boolean isGoodTag(String tag) {
         return tag.equals("h1") || tag.equals("h2") || tag.equals("h3")
                 || tag.equals("h4") || tag.equals("h5") || tag.equals("h6")
-                || tag.equals("p") || tag.equals("body") || tag.equals("#root");
+                || tag.equals("p") || tag.equals("title");
     }
 
     /**
@@ -97,48 +116,55 @@ public class Indexer {
      * @param docID The ID of the HTML document
      */
     public static void indexPage(Document doc, String docID) {
-        Element title = doc.select("title").first();
-        Element body = doc.select("body").first();
-        Map wordsCount = new HashMap();
+        int wordCount = 0;
 
-        //Indexing the page title
-        if (title != null) {
-            String[] words = title.text().split("[^a-zA-Z0-9]+");
-            for (String word : words) {
-                indexerDB.insertWord(word, docID, 0, 0);
+        //Indexing the title of the page
+        String title = doc.title();
+        String[] words = title.split("[^a-zA-Z0-9]+");
+        for (int i = 0; i < words.length; i++) {
+            if (words[i].length() > 1) {
+                insertWord(words[i].toLowerCase(), docID, wordCount++, 0);
             }
         }
 
-        String pageText = body.text();
-        String[] words = pageText.split("[^a-zA-Z0-9]+");
-
-        //Indexing the words of the page
-        for (int i = words.length - 1; i >= 0; i--) {
-            //Don't index 1 letter words
-            if (words[i].length() == 1) {
-                continue;
+        //Starting from the body element to index the page
+        Element body = doc.body();
+        Stack<Element> elemStack = new Stack<>();
+        elemStack.push(body);
+        while (!elemStack.isEmpty()) {
+            Element elem = elemStack.peek();
+            elemStack.pop();
+            //get list of children
+            Elements childrenList = elem.children();
+            //reverse list to ensure correct order of words
+            Collections.reverse(childrenList);
+            for (Element child : childrenList) {
+                if (isGoodTag(child.tagName()) || child.children().isEmpty()) {
+                    //if it's a position tag or no more tags after it
+                    //then add its text
+                    String text = child.text();
+                    words = text.split("[^a-zA-Z0-9]+");
+                    for (String word : words) {
+                        if (word.length() > 1) {
+                            int tagRank = convertTag(child.tagName());
+                            insertWord(word.toLowerCase(), docID, wordCount++, tagRank);
+                        }
+                    }
+                } else {
+                    String text = child.ownText();
+                    //to get the text that is contained in this element only
+                    words = text.split("[^a-zA-Z0-9]+");
+                    for (String word : words) {
+                        if (word.length() > 1) {
+                            int tagRank = convertTag(child.tagName());
+                            insertWord(word.toLowerCase(), docID, wordCount++, tagRank);
+                        }
+                    }
+                    //add the element to the list of elements to be visited
+                    elemStack.push(child);
+                }
             }
-
-            if (!wordsCount.containsKey(words[i])) {
-                wordsCount.put(words[i], 0);
-            }
-
-            Elements elemList = doc.getElementsContainingText(words[i]);
-            int wordCount = (int) (wordsCount.get(words[i]));
-            Element elem = elemList.get(elemList.size() - 1 - wordCount);
-
-            //Loop until we find a header or paragraph tag
-            while (!isGoodTag(elem.tagName())) {
-                elem = elem.parent();
-            }
-
-            int tag = convertTag(elem.tag().getName());
-            int place = i + 1;
-
-            indexerDB.insertWord(words[i], docID, place, tag);
-            wordsCount.put(words[i], wordCount + 1);
         }
-
     }
 
     /**
@@ -149,7 +175,8 @@ public class Indexer {
     public static void main(String[] args) throws IOException {
         // TODO code application logic here
         indexerDB = new DBModule();
-        indexerDB.initDB();
+        initDB();
+
         ArrayList<Path> filePaths = getAllFileNames();
         for (int i = 0; i < filePaths.size(); i++) {
             File document = new File(filePaths.get(i).toString());

@@ -6,8 +6,7 @@
 package indexer;
 
 import java.sql.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.logging.*;
 
 /**
  *
@@ -19,37 +18,13 @@ public class DBModule {
     static final String JDBC_DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
     static final String DB_URL = "jdbc:derby://localhost:1527/SearchEngineDB;create=true";
 
-    public void initDB() {
-        Connection conn = null;
-        Statement stmt = null;
-        
-        try {
-            conn = getConnection();
-            String createTableQuery = "create table \"APP\".Indexer "
-                    + "("
-                    + "	WORD VARCHAR(1000) not null, "
-                    + "	DOCUMENT VARCHAR(1000) not null, "
-                    + "	PLACE INTEGER not null, "
-                    + "	TAG INTEGER default 7, "
-                    + "	primary key (WORD, DOCUMENT, PLACE))";
-            stmt = conn.createStatement();
-            stmt.execute(createTableQuery);
-            closeConnection(conn);
-        } catch (SQLException se) {
-            
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(DBModule.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
     public Connection getConnection() throws ClassNotFoundException, SQLException {
-        Connection conn = null;
-        //STEP 2: Register JDBC driver
+        //Register JDBC driver
         Class.forName(JDBC_DRIVER);
 
-        //STEP 3: Open a connection
+        //Open a connection
         System.out.println("Connecting to a selected database...");
-        conn = DriverManager.getConnection(DB_URL);
+        Connection conn = DriverManager.getConnection(DB_URL);
         System.out.println("Connected database successfully...");
         return conn;
     }
@@ -58,7 +33,7 @@ public class DBModule {
         conn.close();
     }
 
-    public void insertWord(String word, String docID, int place, int tag) {
+    public ResultSet executeReader(String sqlQuery) {
 
         Statement stmt = null;
         Connection conn = null;
@@ -66,13 +41,47 @@ public class DBModule {
         try {
             conn = getConnection();
             stmt = conn.createStatement();
-            String sql = "INSERT INTO WORDS "
-                    + "VALUES ('" + word + "', '" + docID + "', "
-                    + place + ", " + tag + ")";
-            System.out.println(sql);
-            stmt.executeUpdate(sql);
+
+            System.out.println(sqlQuery);
+            return stmt.executeQuery(sqlQuery);
         } catch (ClassNotFoundException | SQLException ex) {
             Logger.getLogger(DBModule.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
+        } finally {
+            //finally block used to close resources
+            try {
+                if (stmt != null) {
+                    closeConnection(conn);
+                }
+            } catch (SQLException ex) {
+                //do nothing
+            }
+            try {
+                if (conn != null) {
+                    closeConnection(conn);
+                }
+            } catch (SQLException se) {
+            }//end finally try
+        }//end try
+    }
+
+    public void executeQuery(String sqlQuery) {
+
+        Statement stmt = null;
+        Connection conn = null;
+
+        try {
+            conn = getConnection();
+            stmt = conn.createStatement();
+
+            System.out.println(sqlQuery);
+            stmt.executeUpdate(sqlQuery);
+
+        } catch (SQLTransactionRollbackException se) {
+
+        } catch (ClassNotFoundException | SQLException ex) {
+            Logger.getLogger(DBModule.class
+                    .getName()).log(Level.SEVERE, null, ex);
         } finally {
             //finally block used to close resources
             try {
