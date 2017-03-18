@@ -8,6 +8,8 @@ package indexer;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.*;
 import org.jsoup.*;
 import org.jsoup.nodes.*;
@@ -20,6 +22,7 @@ import org.jsoup.select.*;
 public class Indexer {
 
     static DBModule indexerDB;
+    static HashSet<String> stopWords;
 
     public static void initDB() {
         String createTableQuery = "create table \"APP\".Indexer "
@@ -39,6 +42,22 @@ public class Indexer {
                 + "VALUES ('" + word + "', '" + docID + "', "
                 + place + ", " + tag + ")";
         indexerDB.executeQuery(sqlQuery);
+    }
+
+    public static void readStopWords() {
+        try {
+            final Scanner s = new Scanner(new File("stop-words.txt"));
+            while (s.hasNextLine()) {
+                final String line = s.nextLine();
+                stopWords.add(line);
+            }
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Indexer.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public static boolean isNotStopWord(String word) {
+        return !stopWords.contains(word);
     }
 
     public static boolean isHTML(Path filePath) {
@@ -63,7 +82,6 @@ public class Indexer {
             filePathStream.forEach(filePath -> {
                 if (Files.isRegularFile(filePath) && isHTML(filePath)) {
                     paths.add(filePath);
-                    System.out.println(filePath);
                 }
             });
         }
@@ -109,6 +127,36 @@ public class Indexer {
                 || tag.equals("p") || tag.equals("title");
     }
 
+    public static int indexElement(Element elem, String docID, int wordCount, boolean own) {
+        String text;
+        if (own) {
+            text = elem.ownText().toLowerCase();
+        } else {
+            text = elem.text().toLowerCase();
+        }
+
+        String[] words = text.split("[^a-zA-Z0-9]+");
+        for (String word : words) {
+            if (word.length() > 1 && isNotStopWord(word)) {
+                int tagRank = convertTag(elem.tagName());
+                insertWord(word, docID, wordCount++, tagRank);
+            }
+        }
+        return wordCount;
+    }
+
+    public static int indexTitle(Document doc, String docID) {
+        String title = doc.title();
+        int wordCount = 0;
+        String[] words = title.split("[^a-zA-Z0-9]+");
+        for (String word : words) {
+            if (word.length() > 1 && isNotStopWord(word)) {
+                insertWord(word.toLowerCase(), docID, wordCount++, 0);
+            }
+        }
+        return wordCount;
+    }
+
     /**
      * Indexes a single page
      *
@@ -116,16 +164,9 @@ public class Indexer {
      * @param docID The ID of the HTML document
      */
     public static void indexPage(Document doc, String docID) {
-        int wordCount = 0;
 
         //Indexing the title of the page
-        String title = doc.title();
-        String[] words = title.split("[^a-zA-Z0-9]+");
-        for (int i = 0; i < words.length; i++) {
-            if (words[i].length() > 1) {
-                insertWord(words[i].toLowerCase(), docID, wordCount++, 0);
-            }
-        }
+        int wordCount = indexTitle(doc, docID);
 
         //Starting from the body element to index the page
         Element body = doc.body();
@@ -142,24 +183,10 @@ public class Indexer {
                 if (isGoodTag(child.tagName()) || child.children().isEmpty()) {
                     //if it's a position tag or no more tags after it
                     //then add its text
-                    String text = child.text();
-                    words = text.split("[^a-zA-Z0-9]+");
-                    for (String word : words) {
-                        if (word.length() > 1) {
-                            int tagRank = convertTag(child.tagName());
-                            insertWord(word.toLowerCase(), docID, wordCount++, tagRank);
-                        }
-                    }
+                    wordCount = indexElement(child, docID, wordCount, false);
                 } else {
-                    String text = child.ownText();
-                    //to get the text that is contained in this element only
-                    words = text.split("[^a-zA-Z0-9]+");
-                    for (String word : words) {
-                        if (word.length() > 1) {
-                            int tagRank = convertTag(child.tagName());
-                            insertWord(word.toLowerCase(), docID, wordCount++, tagRank);
-                        }
-                    }
+                    //index the own text of the element
+                    wordCount = indexElement(child, docID, wordCount, true);
                     //add the element to the list of elements to be visited
                     elemStack.push(child);
                 }
@@ -177,11 +204,15 @@ public class Indexer {
         indexerDB = new DBModule();
         initDB();
 
+        stopWords = new HashSet<>();
+        readStopWords();
+
         ArrayList<Path> filePaths = getAllFileNames();
         for (int i = 0; i < filePaths.size(); i++) {
             File document = new File(filePaths.get(i).toString());
             Document doc = Jsoup.parse(document, "UTF-8", "");
-            indexPage(doc, Integer.toString(i));
+            String docID = Paths.get(System.getProperty("user.dir") + "/docs").relativize(filePaths.get(i)).toString();
+            indexPage(doc, docID);
         }
     }
 }
