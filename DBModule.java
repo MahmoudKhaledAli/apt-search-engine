@@ -25,7 +25,7 @@ public class DBModule {
                 + "DOCUMENT INTEGER not null, "
                 + "PLACE INTEGER not null, "
                 + "TAG INTEGER default 7, "
-                + "primary key (WORD, DOCUMENT, PLACE))";
+                + "primary key (WORD, DOCUMENT, PLACE, TAG))";
 
         executeQuery(createTableQuery);
 

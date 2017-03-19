@@ -112,16 +112,12 @@ public class Indexer {
     public static boolean isGoodTag(String tag) {
         return tag.equals("h1") || tag.equals("h2") || tag.equals("h3")
                 || tag.equals("h4") || tag.equals("h5") || tag.equals("h6")
-                || tag.equals("p") || tag.equals("title");
+                || tag.equals("p") || tag.equals("title")
+                || tag.equals("body");
     }
 
-    public static int indexElement(Element elem, int ID, int wordCount, boolean own) {
-        String text;
-        if (own) {
-            text = elem.ownText().toLowerCase();
-        } else {
-            text = elem.text().toLowerCase();
-        }
+    public static int indexElement(Element elem, int ID, int wordCount) {
+        String text = elem.text().toLowerCase();
 
         String[] words = text.split("[^a-zA-Z0-9]+");
         for (String word : words) {
@@ -166,7 +162,6 @@ public class Indexer {
      * Indexes a single page
      *
      * @param doc The HTML document
-     * @param docID The ID of the HTML document
      */
     public static void indexPage(Document doc, int ID) {
 
@@ -174,32 +169,60 @@ public class Indexer {
         if (checkIfIndexed(ID)) {
             return;
         }
-        int wordCount = indexTitle(doc, ID);
+        indexTitle(doc, ID);
 
         //Starting from the body element to index the page
         Element body = doc.body();
-        Stack<Element> elemStack = new Stack<>();
-        elemStack.push(body);
-        while (!elemStack.isEmpty()) {
-            Element elem = elemStack.peek();
-            elemStack.pop();
-            //get list of children
-            Elements childrenList = elem.children();
-            //reverse list to ensure correct order of words
-            Collections.reverse(childrenList);
-            for (Element child : childrenList) {
-                if (isGoodTag(child.tagName()) || child.children().isEmpty()) {
-                    //if it's a position tag or no more tags after it
-                    //then add its text
-                    wordCount = indexElement(child, ID, wordCount, false);
-                } else {
-                    //index the own text of the element
-                    wordCount = indexElement(child, ID, wordCount, true);
-                    //add the element to the list of elements to be visited
-                    elemStack.push(child);
-                }
-            }
+
+        Elements h1 = body.getElementsByTag("h1");
+        int wordCount = 0;
+        for (Element elem : h1) {
+            wordCount += indexElement(elem, ID, wordCount);
         }
+        h1.remove();
+
+        Elements h2 = body.getElementsByTag("h2");
+        wordCount = 0;
+        for (Element elem : h2) {
+            wordCount += indexElement(elem, ID, wordCount);
+        }
+        h2.remove();
+
+        Elements h3 = body.getElementsByTag("h3");
+        wordCount = 0;
+        for (Element elem : h3) {
+            wordCount += indexElement(elem, ID, wordCount);
+        }
+        h3.remove();
+
+        Elements h4 = body.getElementsByTag("h4");
+        wordCount = 0;
+        for (Element elem : h4) {
+            wordCount += indexElement(elem, ID, wordCount);
+        }
+        h4.remove();
+
+        Elements h5 = body.getElementsByTag("h5");
+        wordCount = 0;
+        for (Element elem : h5) {
+            wordCount += indexElement(elem, ID, wordCount);
+        }
+        h5.remove();
+
+        Elements h6 = body.getElementsByTag("h6");
+        wordCount = 0;
+        for (Element elem : h6) {
+            wordCount += indexElement(elem, ID, wordCount);
+        }
+        h6.remove();
+
+        String plainText = body.text();
+        wordCount = 0;
+        String[] words = plainText.split("[^a-zA-Z0-9]+");
+        for (int i = 0; i < words.length; i++) {
+            insertWord(words[i].toLowerCase(), ID, i, 7);
+        }
+
         markAsIndexed(ID);
     }
 
