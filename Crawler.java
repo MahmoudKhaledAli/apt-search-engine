@@ -143,8 +143,10 @@ public class Crawler {
 				URL pageURL = new URL(nextPage);
 				URLConnection c = pageURL.openConnection();
 				String contentType = c.getContentType();
+				if(contentType == null)
+					continue;
 				//System.out.println(contentType);
-				if(!contentType.contains("text/html; charset=UTF-8"))//only HTML docs
+				if(!contentType.contains("text/html;"))//only HTML docs
 					continue;
 				/*Connection connection =Jsoup.connect(nextPage);
 				if(connection.response().statusCode() != 200)
