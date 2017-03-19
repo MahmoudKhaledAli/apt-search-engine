@@ -21,27 +21,15 @@ import org.jsoup.select.*;
  */
 public class Indexer {
 
-    static DBModule indexerDB;
+    static DBModule searchEngineDB;
     static HashSet<String> stopWords;
-
-    public static void initDB() {
-        String createTableQuery = "create table \"APP\".Indexer "
-                + "( "
-                + "WORD VARCHAR(1000) not null, "
-                + "DOCUMENT VARCHAR(1000) not null, "
-                + "PLACE INTEGER not null, "
-                + "TAG INTEGER default 7, "
-                + "primary key (WORD, DOCUMENT, PLACE))";
-
-        indexerDB.executeQuery(createTableQuery);
-    }
 
     public static void insertWord(String word, String docID, int place, int tag) {
 
         String sqlQuery = "INSERT INTO Indexer "
                 + "VALUES ('" + word + "', '" + docID + "', "
                 + place + ", " + tag + ")";
-        indexerDB.executeQuery(sqlQuery);
+        searchEngineDB.executeQuery(sqlQuery);
     }
 
     public static void readStopWords() {
@@ -201,8 +189,8 @@ public class Indexer {
      */
     public static void main(String[] args) throws IOException {
         // TODO code application logic here
-        indexerDB = new DBModule();
-        initDB();
+        searchEngineDB = new DBModule();
+        searchEngineDB.initDB();
 
         stopWords = new HashSet<>();
         readStopWords();
