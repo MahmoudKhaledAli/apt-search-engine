@@ -18,6 +18,25 @@ public class DBModule {
     static final String JDBC_DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
     static final String DB_URL = "jdbc:derby://localhost:1527/SearchEngineDB;create=true";
 
+    public void initDB() {
+        String createTableQuery = "create table \"APP\".Indexer "
+                + "( "
+                + "WORD VARCHAR(1000) not null, "
+                + "DOCUMENT VARCHAR(1000) not null, "
+                + "PLACE INTEGER not null, "
+                + "TAG INTEGER default 7, "
+                + "primary key (WORD, DOCUMENT, PLACE))";
+
+        executeQuery(createTableQuery);
+
+        createTableQuery = "create table \"APP\".Crawler "
+                + "( "
+                + "ID VARCHAR(1000) not null, "
+                + "INDEXED BOOLEAN default false, "
+                + "primary key (ID))";
+        executeQuery(createTableQuery);
+    }
+
     public Connection getConnection() throws ClassNotFoundException, SQLException {
         //Register JDBC driver
         Class.forName(JDBC_DRIVER);
