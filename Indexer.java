@@ -24,10 +24,10 @@ public class Indexer {
     static DBModule searchEngineDB;
     static HashSet<String> stopWords;
 
-    public static void insertWord(String word, String docID, int place, int tag) {
+    public static void insertWord(String word, int ID, int place, int tag) {
 
         String sqlQuery = "INSERT INTO Indexer "
-                + "VALUES ('" + word + "', '" + docID + "', "
+                + "VALUES ('" + word + "', " + ID + ", "
                 + place + ", " + tag + ")";
         searchEngineDB.executeQuery(sqlQuery);
     }
@@ -115,7 +115,7 @@ public class Indexer {
                 || tag.equals("p") || tag.equals("title");
     }
 
-    public static int indexElement(Element elem, String docID, int wordCount, boolean own) {
+    public static int indexElement(Element elem, int ID, int wordCount, boolean own) {
         String text;
         if (own) {
             text = elem.ownText().toLowerCase();
@@ -127,22 +127,39 @@ public class Indexer {
         for (String word : words) {
             if (word.length() > 1 && isNotStopWord(word)) {
                 int tagRank = convertTag(elem.tagName());
-                insertWord(word, docID, wordCount++, tagRank);
+                insertWord(word, ID, wordCount++, tagRank);
             }
         }
         return wordCount;
     }
 
-    public static int indexTitle(Document doc, String docID) {
+    public static int indexTitle(Document doc, int ID) {
         String title = doc.title();
         int wordCount = 0;
         String[] words = title.split("[^a-zA-Z0-9]+");
         for (String word : words) {
             if (word.length() > 1 && isNotStopWord(word)) {
-                insertWord(word.toLowerCase(), docID, wordCount++, 0);
+                insertWord(word.toLowerCase(), ID, wordCount++, 0);
             }
         }
         return wordCount;
+    }
+
+    public static boolean checkIfIndexed(int ID) {
+        String countQuery = "SELECT indexed "
+                + "FROM Crawler "
+                + "WHERE ID = " + ID;
+
+        int indexed = searchEngineDB.executeScalar(countQuery);
+        System.out.println(Integer.toString(indexed));
+        return indexed == 1;
+    }
+
+    public static void markAsIndexed(int ID) {
+        String insertQuery = "UPDATE Crawler "
+                + "SET indexed = 1 "
+                + "WHERE ID = " + ID;
+        searchEngineDB.executeQuery(insertQuery);
     }
 
     /**
@@ -151,10 +168,13 @@ public class Indexer {
      * @param doc The HTML document
      * @param docID The ID of the HTML document
      */
-    public static void indexPage(Document doc, String docID) {
+    public static void indexPage(Document doc, int ID) {
 
         //Indexing the title of the page
-        int wordCount = indexTitle(doc, docID);
+        if (checkIfIndexed(ID)) {
+            return;
+        }
+        int wordCount = indexTitle(doc, ID);
 
         //Starting from the body element to index the page
         Element body = doc.body();
@@ -171,15 +191,16 @@ public class Indexer {
                 if (isGoodTag(child.tagName()) || child.children().isEmpty()) {
                     //if it's a position tag or no more tags after it
                     //then add its text
-                    wordCount = indexElement(child, docID, wordCount, false);
+                    wordCount = indexElement(child, ID, wordCount, false);
                 } else {
                     //index the own text of the element
-                    wordCount = indexElement(child, docID, wordCount, true);
+                    wordCount = indexElement(child, ID, wordCount, true);
                     //add the element to the list of elements to be visited
                     elemStack.push(child);
                 }
             }
         }
+        markAsIndexed(ID);
     }
 
     /**
@@ -200,7 +221,8 @@ public class Indexer {
             File document = new File(filePaths.get(i).toString());
             Document doc = Jsoup.parse(document, "UTF-8", "");
             String docID = Paths.get(System.getProperty("user.dir") + "/docs").relativize(filePaths.get(i)).toString();
-            indexPage(doc, docID);
+            int ID = Integer.parseInt(docID.replaceFirst("[.][^.]+$", ""));
+            indexPage(doc, ID);
         }
     }
 }

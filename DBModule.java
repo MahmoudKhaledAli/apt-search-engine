@@ -22,7 +22,7 @@ public class DBModule {
         String createTableQuery = "create table \"APP\".Indexer "
                 + "( "
                 + "WORD VARCHAR(1000) not null, "
-                + "DOCUMENT VARCHAR(1000) not null, "
+                + "DOCUMENT INTEGER not null, "
                 + "PLACE INTEGER not null, "
                 + "TAG INTEGER default 7, "
                 + "primary key (WORD, DOCUMENT, PLACE))";
@@ -31,8 +31,9 @@ public class DBModule {
 
         createTableQuery = "create table \"APP\".Crawler "
                 + "( "
-                + "ID VARCHAR(1000) not null, "
-                + "INDEXED BOOLEAN default false, "
+                + "ID INTEGER not null, "
+                + "docID VARCHAR(1000) not null, "
+                + "INDEXED INTEGER default 0, "
                 + "primary key (ID))";
         executeQuery(createTableQuery);
     }
@@ -66,6 +67,43 @@ public class DBModule {
         } catch (ClassNotFoundException | SQLException ex) {
             Logger.getLogger(DBModule.class.getName()).log(Level.SEVERE, null, ex);
             return null;
+        } finally {
+            //finally block used to close resources
+            try {
+                if (stmt != null) {
+                    closeConnection(conn);
+                }
+            } catch (SQLException ex) {
+                //do nothing
+            }
+            try {
+                if (conn != null) {
+                    closeConnection(conn);
+                }
+            } catch (SQLException se) {
+            }//end finally try
+        }//end try
+    }
+
+    public int executeScalar(String sqlQuery) {
+
+        Statement stmt = null;
+        Connection conn = null;
+
+        try {
+            conn = getConnection();
+            stmt = conn.createStatement();
+
+            System.out.println(sqlQuery);
+            ResultSet rs = stmt.executeQuery(sqlQuery);
+            if (rs.next()) {
+                return rs.getInt(1);
+            } else {
+                return 0;
+            }
+        } catch (ClassNotFoundException | SQLException ex) {
+            Logger.getLogger(DBModule.class.getName()).log(Level.SEVERE, null, ex);
+            return -1;
         } finally {
             //finally block used to close resources
             try {
