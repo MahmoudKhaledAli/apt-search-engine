@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
@@ -191,7 +191,7 @@ public class Crawler {
 	public static void main(String[] args) throws IOException {
 		Crawler myCrawler1 = new Crawler(
 				"https://en.wikipedia.org/wiki/Robots_exclusion_standard", 100);
-		myCrawler1.init(5);
+		myCrawler1.init(20);
 	}
 
 	public void createSiteDirectory(String siteDirectory) {
@@ -258,21 +258,17 @@ public class Crawler {
 				System.out.println("Thread " + Thread.currentThread().getName()
 						+ " - Now visiting: " + nextPage);
 
+				
 				Elements links = doc.getElementsByTag("a");
 				for (Element link : links) {
 					if (!link.attr("href").startsWith("#")) {
 						String linkHref = link.attr("abs:href");
 						if (linkHref == "") {
-							System.out.println();
 							continue;
 						}
 						synchronized (toVisitLock) {
-							if (!pagesToVisit.contains(linkHref)) {
-								System.out.println("Thread "
-										+ Thread.currentThread().getName()
-										+ " - fetched a new link. ");
-							}
-
+							if (!pagesToVisit.contains(linkHref))
+								pagesToVisit.add(linkHref);
 						}
 
 					}
