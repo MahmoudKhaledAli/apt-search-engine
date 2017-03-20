@@ -16,8 +16,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-import org.jsoup.HttpStatusException;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
@@ -77,7 +79,7 @@ public class Crawler {
 				e.printStackTrace();
 			}
 
-		} while (invalidLink);	
+		} while (invalidLink);
 
 		return nextPage;
 	}
@@ -90,31 +92,25 @@ public class Crawler {
 		maxPages = maxPage;
 		docNumber = visitedPages.size();
 
-		// searchEngineDB = new DBModule();
-		// searchEngineDB.initDB();
+		searchEngineDB = new DBModule();
+		searchEngineDB.initDB();
 	}
 
-	public void init() {
-		Thread t1 = new Thread(new Runnable() {
+	class crawlerThread extends Thread {
+		public void run() {
+			crawl();
+		}
 
-			@Override
-			public void run() {
-				// TODO Auto-generated method stub
-				crawl();
-			}
-		});
-		Thread t2 = new Thread(new Runnable() {
+		public crawlerThread(String threadName) {
+			super(threadName);
+		}
+	}
 
-			@Override
-			public void run() {
-				// TODO Auto-generated method stub
-				crawl();
-			}
-		});
-		t1.setName("Thread 1");
-		t2.setName("Thread 2");
-		t1.start();
-		t2.start();
+	public void init(int threads) {
+		ExecutorService poolManager = Executors.newFixedThreadPool(1000);
+		for (int i = 0; i < threads; i++) {
+			poolManager.submit(new crawlerThread("T" + i));
+		}
 
 	}
 
@@ -193,8 +189,9 @@ public class Crawler {
 	}
 
 	public static void main(String[] args) throws IOException {
-		Crawler myCrawler1 = new Crawler("https://en.wikipedia.org/wiki/Robots_exclusion_standard", 100);
-		myCrawler1.init();
+		Crawler myCrawler1 = new Crawler(
+				"https://en.wikipedia.org/wiki/Robots_exclusion_standard", 100);
+		myCrawler1.init(5);
 	}
 
 	public void createSiteDirectory(String siteDirectory) {
@@ -213,6 +210,8 @@ public class Crawler {
 		PrintWriter out = new PrintWriter(bw);
 		out.append(Data);
 		out.close();
+		System.out.println("Thread " + Thread.currentThread().getName()
+				+ " - Now saving: " + "docs/" + docNumber + ".html");
 	}
 
 	public void insertIntoDB(String path, int ID) {
@@ -247,35 +246,33 @@ public class Crawler {
 	}
 
 	public void crawl() {
-		while(true) {
-			try{
+		while (true) {
+			try {
 
-				
 				String nextPage = getNextPage();
-				
+
 				if (nextPage == "-")
 					continue;
 
-				Document doc = Jsoup.connect(nextPage).userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0").get();
+				Document doc = Jsoup.connect(nextPage).userAgent("*").get();
 				System.out.println("Thread " + Thread.currentThread().getName()
 						+ " - Now visiting: " + nextPage);
-				
 
-				createSiteHTML("docs/" + (++docNumber) + ".html", doc.toString());
-				System.out.println("Thread " + Thread.currentThread().getName()
-						+ " - Now saving: " + "docs/" + docNumber + ".html");
-
-				//insertIntoDB(nextPage, docNumber);
 				Elements links = doc.getElementsByTag("a");
 				for (Element link : links) {
 					if (!link.attr("href").startsWith("#")) {
 						String linkHref = link.attr("abs:href");
 						if (linkHref == "") {
+							System.out.println();
 							continue;
 						}
 						synchronized (toVisitLock) {
-							if (!pagesToVisit.contains(linkHref))
-								pagesToVisit.add(linkHref);
+							if (!pagesToVisit.contains(linkHref)) {
+								System.out.println("Thread "
+										+ Thread.currentThread().getName()
+										+ " - fetched a new link. ");
+							}
+
 						}
 
 					}
@@ -288,15 +285,17 @@ public class Crawler {
 				}
 				synchronized (toVisitLock) {
 					listToFile(pagesToVisit, "toVisit.txt");
+					createSiteHTML("docs/" + (++docNumber) + ".html",
+							doc.toString());
+					insertIntoDB(nextPage, docNumber);
 				}
 
-			}			
-			catch (IOException e) {
+			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 
-		} 
+		}
 
 	}
 
