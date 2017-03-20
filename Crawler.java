@@ -18,8 +18,9 @@ import java.util.Set;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
-import org.jsoup.HttpStatusException;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
@@ -111,6 +112,15 @@ public class Crawler {
 		for (int i = 0; i < threads; i++) {
 			poolManager.submit(new crawlerThread("T" + i));
 		}
+		
+		poolManager.shutdown();
+		try {
+			poolManager.awaitTermination(1, TimeUnit.DAYS);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("Done");
 
 	}
 
@@ -190,7 +200,7 @@ public class Crawler {
 
 	public static void main(String[] args) throws IOException {
 		Crawler myCrawler1 = new Crawler(
-				"https://en.wikipedia.org/wiki/Robots_exclusion_standard", 100);
+				"https://www.tutorialspoint.com/java/java_thread_synchronization.htm", 100);
 		myCrawler1.init(20);
 	}
 
