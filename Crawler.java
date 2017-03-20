@@ -88,9 +88,10 @@ public class Crawler {
 		visitedPages = fileToSet("visited.txt");
 		pagesToVisit.add(startLink);
 		maxPages = maxPage;
+		docNumber = visitedPages.size();
 
-		searchEngineDB = new DBModule();
-		searchEngineDB.initDB();
+		// searchEngineDB = new DBModule();
+		// searchEngineDB.initDB();
 	}
 
 	public void init() {
@@ -264,7 +265,7 @@ public class Crawler {
 				System.out.println("Thread " + Thread.currentThread().getName()
 						+ " - Now saving: " + "docs/" + docNumber + ".html");
 
-				insertIntoDB(nextPage, visitedPages.size());
+				//insertIntoDB(nextPage, docNumber);
 				Elements links = doc.getElementsByTag("a");
 				for (Element link : links) {
 					if (!link.attr("href").startsWith("#")) {
