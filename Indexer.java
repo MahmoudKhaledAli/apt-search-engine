@@ -23,11 +23,16 @@ public class Indexer {
 
     static DBModule searchEngineDB;
     static HashSet<String> stopWords;
+    static Stemmer stemmer;
 
     public static void insertWord(String word, int ID, int place, int tag) {
-
+        for (int i = 0; i < word.length(); i++) {
+            stemmer.add(word.charAt(i));
+        }
+        stemmer.stem();
+        String wordStem = stemmer.toString();
         String sqlQuery = "INSERT INTO Indexer "
-                + "VALUES ('" + word + "', " + ID + ", "
+                + "VALUES ('" + word + "', '" + wordStem + "', " + ID + ", "
                 + place + ", " + tag + ")";
         searchEngineDB.executeQuery(sqlQuery);
     }
@@ -220,7 +225,9 @@ public class Indexer {
         wordCount = 0;
         String[] words = plainText.split("[^a-zA-Z0-9]+");
         for (int i = 0; i < words.length; i++) {
-            insertWord(words[i].toLowerCase(), ID, i, 7);
+            if (words[i].length() > 1 && isNotStopWord(words[i].toLowerCase())) {
+                insertWord(words[i].toLowerCase(), ID, i, 7);
+            }
         }
 
         markAsIndexed(ID);
@@ -235,6 +242,7 @@ public class Indexer {
         // TODO code application logic here
         searchEngineDB = new DBModule();
         searchEngineDB.initDB();
+        stemmer = new Stemmer();
 
         stopWords = new HashSet<>();
         readStopWords();
