@@ -6,7 +6,10 @@
 package indexer;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.*;
+import javafx.scene.chart.PieChart.Data;
 
 /**
  *
@@ -34,6 +37,7 @@ public class DBModule {
                 + "ID INTEGER not null, "
                 + "docID VARCHAR(1000) not null, "
                 + "INDEXED INTEGER default 0, "
+                + "LastCrawled TIMESTAMP not null, "
                 + "primary key (ID))";
         executeQuery(createTableQuery);
     }
@@ -53,7 +57,7 @@ public class DBModule {
         conn.close();
     }
 
-    public ResultSet executeReader(String sqlQuery) {
+    public List<CrawlerEntry> executeCrawlerReader(String sqlQuery) {
 
         Statement stmt = null;
         Connection conn = null;
@@ -63,7 +67,16 @@ public class DBModule {
             stmt = conn.createStatement();
 
             System.out.println(sqlQuery);
-            return stmt.executeQuery(sqlQuery);
+            ResultSet rs = stmt.executeQuery(sqlQuery);
+            List<CrawlerEntry> list = new ArrayList<>();
+            while (rs.next()) {
+                CrawlerEntry data = new CrawlerEntry();
+                data.setID(rs.getInt("ID"));
+                data.setDocID(rs.getString("docID"));
+                data.setLastCrawled(rs.getTimestamp("LastCrawled"));
+                list.add(data);
+            }
+            return list;
         } catch (ClassNotFoundException | SQLException ex) {
             Logger.getLogger(DBModule.class.getName()).log(Level.SEVERE, null, ex);
             return null;
