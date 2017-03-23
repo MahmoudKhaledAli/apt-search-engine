@@ -256,7 +256,7 @@ public class Crawler {
             java.sql.Timestamp currentTime = new java.sql.Timestamp(today.getTime());
             String insertQuery = "INSERT INTO Crawler " + "values("
                     + Integer.toString(ID) + ", '" + path + "', 0, '"
-                    + currentTime + "' , 10)";
+                    + currentTime + "')";
             searchEngineDB.executeQuery(insertQuery);
         } else if (count == 1) {
             java.util.Date today = new java.util.Date();
