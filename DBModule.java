@@ -6,7 +6,10 @@
 package indexer;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.*;
+import javafx.scene.chart.PieChart.Data;
 
 /**
  *
@@ -17,6 +20,27 @@ public class DBModule {
     // JDBC driver name and database URL
     static final String JDBC_DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
     static final String DB_URL = "jdbc:derby://localhost:1527/SearchEngineDB;create=true";
+
+    public void initDB() {
+        String createTableQuery = "create table \"APP\".Indexer "
+                + "( "
+                + "WORD VARCHAR(1000) not null, "
+                + "DOCUMENT INTEGER not null, "
+                + "PLACE INTEGER not null, "
+                + "TAG INTEGER default 7, "
+                + "primary key (WORD, DOCUMENT, PLACE, TAG))";
+
+        executeQuery(createTableQuery);
+
+        createTableQuery = "create table \"APP\".Crawler "
+                + "( "
+                + "ID INTEGER not null, "
+                + "docID VARCHAR(1000) not null, "
+                + "INDEXED INTEGER default 0, "
+                + "LastCrawled TIMESTAMP not null, "
+                + "primary key (ID))";
+        executeQuery(createTableQuery);
+    }
 
     public Connection getConnection() throws ClassNotFoundException, SQLException {
         //Register JDBC driver
@@ -33,7 +57,7 @@ public class DBModule {
         conn.close();
     }
 
-    public ResultSet executeReader(String sqlQuery) {
+    public List<CrawlerEntry> executeCrawlerReader(String sqlQuery) {
 
         Statement stmt = null;
         Connection conn = null;
@@ -43,10 +67,56 @@ public class DBModule {
             stmt = conn.createStatement();
 
             System.out.println(sqlQuery);
-            return stmt.executeQuery(sqlQuery);
+            ResultSet rs = stmt.executeQuery(sqlQuery);
+            List<CrawlerEntry> list = new ArrayList<>();
+            while (rs.next()) {
+                CrawlerEntry data = new CrawlerEntry();
+                data.setID(rs.getInt("ID"));
+                data.setDocID(rs.getString("docID"));
+                data.setLastCrawled(rs.getTimestamp("LastCrawled"));
+                list.add(data);
+            }
+            return list;
         } catch (ClassNotFoundException | SQLException ex) {
             Logger.getLogger(DBModule.class.getName()).log(Level.SEVERE, null, ex);
             return null;
+        } finally {
+            //finally block used to close resources
+            try {
+                if (stmt != null) {
+                    closeConnection(conn);
+                }
+            } catch (SQLException ex) {
+                //do nothing
+            }
+            try {
+                if (conn != null) {
+                    closeConnection(conn);
+                }
+            } catch (SQLException se) {
+            }//end finally try
+        }//end try
+    }
+
+    public int executeScalar(String sqlQuery) {
+
+        Statement stmt = null;
+        Connection conn = null;
+
+        try {
+            conn = getConnection();
+            stmt = conn.createStatement();
+
+            System.out.println(sqlQuery);
+            ResultSet rs = stmt.executeQuery(sqlQuery);
+            if (rs.next()) {
+                return rs.getInt(1);
+            } else {
+                return 0;
+            }
+        } catch (ClassNotFoundException | SQLException ex) {
+            Logger.getLogger(DBModule.class.getName()).log(Level.SEVERE, null, ex);
+            return -1;
         } finally {
             //finally block used to close resources
             try {

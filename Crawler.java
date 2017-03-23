@@ -6,7 +6,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+
 import java.io.InputStreamReader;
+master
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -14,13 +16,18 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+
+import java.util.Date;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
 import javax.net.ssl.HttpsURLConnection;
+
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -32,12 +39,20 @@ public class Crawler {
     DBModule searchEngineDB;
     private static Set<String> visitedPages;
     private static List<String> pagesToVisit;
+
     private static Set<String> exclusions;
     private static Set<String> allowed;
+    
+
     private static int maxPages = 100;
-    private final Object visitedLock;
-    private final Object toVisitLock;
+    private Object visitedLock = new Object();
+    private Object toVisitLock = new Object();
+    private Object DBLock = new Object();
+    private Object timeLock = new Object();
     private static int docNumber = 0;
+    private static int timeSinceRefresh = 0;
+    private static Date lastTime = new java.util.Date();
+
 
     public String getNextPage() {
 
@@ -48,6 +63,7 @@ public class Crawler {
             synchronized (toVisitLock) {
                 if (pagesToVisit.isEmpty()) {
                     continue;
+
                 }
                 nextPage = pagesToVisit.remove(0);
             }
@@ -62,11 +78,13 @@ public class Crawler {
 
             try {
                 pageURL = new URL(nextPage);
+
                 if(!isRobotSafe(pageURL)){
                     System.out.println("robot disallowed");
                     invalidLink = true;
                     continue;
                 }
+
                 URLConnection c = pageURL.openConnection();
                 String contentType = c.getContentType();
 
@@ -90,6 +108,7 @@ public class Crawler {
             }
 
         } while (invalidLink);
+
         
         synchronized (visitedLock) {
                 visitedPages.add(nextPage);
@@ -134,21 +153,22 @@ public class Crawler {
             return true;
         }
         
-    }
+    }  
 
     public Crawler(String startLink, int maxPage) {
-        this.visitedLock = new Object();
-        this.toVisitLock = new Object();
+
 
         pagesToVisit = fileToList("toVisit.txt");
         visitedPages = fileToSet("visited.txt");
         pagesToVisit.add(startLink);
         maxPages = maxPage;
         docNumber = visitedPages.size();
+
         String deleteQuery = "DELETE from \"APP\".Crawler";
         /*if(docNumber == 0){
 			searchEngineDB.executeQuery(deleteQuery);
 		}*/
+
 
         searchEngineDB = new DBModule();
         searchEngineDB.initDB();
@@ -188,9 +208,11 @@ public class Crawler {
                 BufferedWriter bw = new BufferedWriter(fw);
                 PrintWriter out = new PrintWriter(bw)) {
 
+
             set.forEach((link) -> {
                 out.println(link);
             });
+
 
         } catch (IOException e) {
             // exception handling left as an exercise for the reader
@@ -217,7 +239,10 @@ public class Crawler {
     }
 
     public static Set<String> fileToSet(String filename) {
+
+
         Set<String> updatedPages = new HashSet<>();
+
         File visited = new File(filename);
         if (!visited.exists()) {
             return updatedPages;
@@ -235,7 +260,9 @@ public class Crawler {
     }
 
     public static List<String> fileToList(String filename) {
+
         List<String> updatedPages = new ArrayList<>();
+
         File toVisit = new File(filename);
         if (!toVisit.exists()) {
             return updatedPages;
@@ -260,6 +287,7 @@ public class Crawler {
         Crawler myCrawler1 = new Crawler(
                 "https://www.tutorialspoint.com/java/java_thread_synchronization.htm", 500);
         myCrawler1.init(50);
+
     }
 
     public void createSiteDirectory(String siteDirectory) {
@@ -282,6 +310,23 @@ public class Crawler {
                 + " - Now saving: " + "docs/" + docNumber + ".html");
     }
 
+
+    public int getOldDocNo(String path) {
+        String countQuery = "SELECT count(*)" + "FROM Crawler " + "WHERE docID = '"
+                + path + "'";
+
+        int count = searchEngineDB.executeScalar(countQuery);
+
+        if (count == 0) {
+            return 0;
+        } else {
+            String selectQuery = "SELECT ID " + "FROM Crawler " + "WHERE docID = '"
+                    + path + "'";
+            return searchEngineDB.executeScalar(selectQuery);
+        }
+    }
+
+
     public void insertIntoDB(String path, int ID) {
         String countQuery = "SELECT count(*)" + "FROM Crawler " + "WHERE ID = "
                 + Integer.toString(ID);
@@ -289,17 +334,45 @@ public class Crawler {
         int count = searchEngineDB.executeScalar(countQuery);
 
         if (count == 0) {
+
+
+            java.util.Date today = new java.util.Date();
+            java.sql.Timestamp currentTime = new java.sql.Timestamp(today.getTime());
             String insertQuery = "INSERT INTO Crawler " + "values("
-                    + Integer.toString(ID) + ", '" + path + "', 0)";
+                    + Integer.toString(ID) + ", '" + path + "', 0, '"
+                    + currentTime + "')";
             searchEngineDB.executeQuery(insertQuery);
         } else if (count == 1) {
+            java.util.Date today = new java.util.Date();
+            java.sql.Timestamp currentTime = new java.sql.Timestamp(today.getTime());
+            String insertQuery = "UPDATE Crawler " + "SET indexed = 0, "
+                    + "LastCrawled = '" + currentTime + "' "
 
-            String insertQuery = "UPDATE Crawler " + "SET indexed = 0 "
                     + "WHERE ID = " + Integer.toString(ID);
             searchEngineDB.executeQuery(insertQuery);
         }
 
     }
+
+
+    public void addToVisitFromDB() {
+        String getQuery = "SELECT * From Crawler";
+        List<CrawlerEntry> crawlerEntries = searchEngineDB.executeCrawlerReader(getQuery);
+
+        for (CrawlerEntry entry : crawlerEntries) {
+            java.util.Date today = new java.util.Date();
+            java.sql.Timestamp currentTime = new java.sql.Timestamp(today.getTime());
+            java.sql.Timestamp lastCrawledTime = entry.getLastCrawled();
+            long timeDiff = currentTime.getTime() - lastCrawledTime.getTime();
+            int days = (int) (timeDiff / (1000 * 60 * 60 * 24));
+            String link = entry.getDocID();
+            if (days >= 1) {
+                pagesToVisit.add(link);
+                visitedPages.remove(link);
+            }
+        }
+    }
+
 
     public String getHostName(String url) throws URISyntaxException {
         URI uri = new URI(url);
@@ -317,9 +390,21 @@ public class Crawler {
         while (true) {
             try {
 
+                synchronized (DBLock) {
+                    synchronized (timeLock) {
+                        timeSinceRefresh += new Date().getTime() - lastTime.getTime();
+                        if ((int) (timeSinceRefresh / (1000 * 60 * 60)) >= 2) {
+                            timeSinceRefresh = 0;
+                            addToVisitFromDB();
+                        }
+                        lastTime = new Date();
+                    }
+                }
+
                 String nextPage = getNextPage();
 
-                if ("-".equals(nextPage)) {
+                if (nextPage.equals("-")) {
+
                     continue;
                 }
 
@@ -331,7 +416,9 @@ public class Crawler {
                 for (Element link : links) {
                     if (!link.attr("href").startsWith("#")) {
                         String linkHref = link.attr("abs:href");
+
                         if ("".equals(linkHref)) {
+
                             continue;
                         }
                         synchronized (toVisitLock) {
@@ -345,15 +432,27 @@ public class Crawler {
                 synchronized (visitedLock) {
                     if (docNumber >= maxPages) {
                         break;
-                    }                    
+                    }
+                    visitedPages.add(nextPage);
                     setToFile(visitedPages, "visited.txt");
-
+                    
                 }
                 synchronized (toVisitLock) {
-                    listToFile(pagesToVisit, "toVisit.txt");
-                    createSiteHTML("docs/" + (++docNumber) + ".html",
-                            doc.toString());
-                    insertIntoDB(nextPage, docNumber);
+                    synchronized (DBLock) {
+                        listToFile(pagesToVisit, "toVisit.txt");
+                        int oldNo = getOldDocNo(nextPage);
+
+                        if (oldNo == 0) {
+                            createSiteHTML("docs/" + (++docNumber) + ".html",
+                                    doc.toString());
+                            insertIntoDB(nextPage, docNumber);
+                        } else {
+                            createSiteHTML("docs/" + oldNo + ".html",
+                                    doc.toString());
+                            insertIntoDB(nextPage, oldNo);
+                        }
+                    }
+
                 }
 
             } catch (IOException e) {
@@ -364,5 +463,5 @@ public class Crawler {
         }
 
     }
-
 }
+
