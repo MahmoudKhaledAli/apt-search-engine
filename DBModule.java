@@ -22,23 +22,22 @@ public class DBModule {
     static final String DB_URL = "jdbc:derby://localhost:1527/SearchEngineDB;create=true";
 
     public void initDB() {
-        String createTableQuery = "create table \"APP\".Indexer "
-                + "( "
-                + "WORD VARCHAR(1000) not null, "
-                + "DOCUMENT INTEGER not null, "
-                + "PLACE INTEGER not null, "
-                + "TAG INTEGER default 7, "
-                + "primary key (WORD, DOCUMENT, PLACE, TAG))";
 
-        executeQuery(createTableQuery);
-
-        createTableQuery = "create table \"APP\".Crawler "
+        String createTableQuery = "create table \"APP\".Crawler "
                 + "( "
                 + "ID INTEGER not null, "
                 + "docID VARCHAR(1000) not null, "
                 + "INDEXED INTEGER default 0, "
                 + "LastCrawled TIMESTAMP not null, "
                 + "primary key (ID))";
+        executeQuery(createTableQuery);
+
+        createTableQuery = "create table \"APP\".Indexer"
+                + "( WORD VARCHAR(1000) not null, STEM VARCHAR (1000) not null,\n"
+                + "PLACE INTEGER not null, TAG INTEGER default 7,\n"
+                + "DOCUMENT INTEGER CONSTRAINT word_foreign_key REFERENCES Crawler ON DELETE CASCADE,\n"
+                + "primary key (WORD, DOCUMENT, PLACE, TAG))";
+
         executeQuery(createTableQuery);
     }
 
@@ -47,9 +46,7 @@ public class DBModule {
         Class.forName(JDBC_DRIVER);
 
         //Open a connection
-        System.out.println("Connecting to a selected database...");
         Connection conn = DriverManager.getConnection(DB_URL);
-        System.out.println("Connected database successfully...");
         return conn;
     }
 
