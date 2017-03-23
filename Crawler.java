@@ -261,8 +261,8 @@ public class Crawler {
         } else if (count == 1) {
             java.util.Date today = new java.util.Date();
             java.sql.Timestamp currentTime = new java.sql.Timestamp(today.getTime());
-            String insertQuery = "UPDATE Crawler " + "SET indexed = 0 "
-                    + "SET LastCrawled = '" + currentTime + "' "
+            String insertQuery = "UPDATE Crawler " + "SET indexed = 0, "
+                    + "LastCrawled = '" + currentTime + "' "
                     + "WHERE ID = " + Integer.toString(ID);
             searchEngineDB.executeQuery(insertQuery);
         }
