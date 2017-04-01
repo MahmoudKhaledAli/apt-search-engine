@@ -29,6 +29,7 @@ public class DBModule {
                 + "docID VARCHAR(1000) not null, "
                 + "INDEXED INTEGER default 0, "
                 + "LastCrawled TIMESTAMP not null, "
+                + "LastModified BIGINT not null, "
                 + "primary key (ID))";
         executeQuery(createTableQuery);
 
@@ -71,6 +72,7 @@ public class DBModule {
                 data.setID(rs.getInt("ID"));
                 data.setDocID(rs.getString("docID"));
                 data.setLastCrawled(rs.getTimestamp("LastCrawled"));
+                data.setLastModified(rs.getLong("LastModified"));
                 list.add(data);
             }
             return list;

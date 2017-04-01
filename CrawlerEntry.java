@@ -17,6 +17,7 @@ public class CrawlerEntry {
     private int ID;
     private String docID;
     private java.sql.Timestamp LastCrawled;
+    private long LastModified;
 
     public int getID() {
         return ID;
@@ -40,6 +41,14 @@ public class CrawlerEntry {
 
     public void setLastCrawled(Timestamp LastCrawled) {
         this.LastCrawled = LastCrawled;
+    }
+    
+    public long getLastModified(){
+        return LastModified;
+    }
+    
+    public void setLastModified(long LastModified) {
+        this.LastModified = LastModified;
     }
 
 }
