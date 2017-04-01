@@ -32,8 +32,8 @@ public class Indexer {
         stemmer.stem();
         String wordStem = stemmer.toString();
         String sqlQuery = "INSERT INTO Indexer "
-                + "VALUES ('" + word + "', '" + wordStem + "', " + ID + ", "
-                + place + ", " + tag + ")";
+                + "VALUES ('" + word + "', '" + wordStem + "', " + place + ", "
+                + tag + ", " + ID + ")";
         searchEngineDB.executeQuery(sqlQuery);
     }
 
@@ -247,13 +247,16 @@ public class Indexer {
         stopWords = new HashSet<>();
         readStopWords();
 
-        ArrayList<Path> filePaths = getAllFileNames();
-        for (int i = 0; i < filePaths.size(); i++) {
-            File document = new File(filePaths.get(i).toString());
-            Document doc = Jsoup.parse(document, "UTF-8", "");
-            String docID = Paths.get(System.getProperty("user.dir") + "/docs").relativize(filePaths.get(i)).toString();
-            int ID = Integer.parseInt(docID.replaceFirst("[.][^.]+$", ""));
-            indexPage(doc, ID);
+        ArrayList<Path> filePaths;
+        while (true) {
+            filePaths = getAllFileNames();
+            for (int i = 0; i < filePaths.size(); i++) {
+                File document = new File(filePaths.get(i).toString());
+                Document doc = Jsoup.parse(document, "UTF-8", "");
+                String docID = Paths.get(System.getProperty("user.dir") + "/docs").relativize(filePaths.get(i)).toString();
+                int ID = Integer.parseInt(docID.replaceFirst("[.][^.]+$", ""));
+                indexPage(doc, ID);
+            }
         }
     }
 }
