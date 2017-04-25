@@ -24,7 +24,10 @@ public class PhraseSearch {
 
         List<IndexerEntry> firstWordMatches = searchEngineDB.executeIndexerReader(sqlQuery);
 
+        boolean phraseFound = true;
+
         for (IndexerEntry firstWordMatch : firstWordMatches) {
+            phraseFound = true;
             for (int i = 1; i < words.length; i++) {
                 sqlQuery = "SELECT * FROM INDEXER WHERE DOCUMENT = "
                         + Integer.toString(firstWordMatch.getDocument()) + " "
@@ -32,13 +35,17 @@ public class PhraseSearch {
                         + " AND TAG = " + Integer.toString(firstWordMatch.getTag());
                 List<IndexerEntry> nextWord = searchEngineDB.executeIndexerReader(sqlQuery);
                 if (nextWord.isEmpty()) {
+                    phraseFound = false;
                     break;
                 }
                 if (!nextWord.get(0).getWord().equals(words[i].toLowerCase())) {
+                    phraseFound = false;
                     break;
                 }
             }
-            docs.add(firstWordMatch.getDocument());
+            if (phraseFound) {
+                docs.add(firstWordMatch.getDocument());
+            }
         }
 
         return docs;
@@ -48,6 +55,10 @@ public class PhraseSearch {
         searchEngineDB = new DBModule();
         searchEngineDB.initDB();
         PhraseSearch searcher = new PhraseSearch();
-        List<Integer> phrases = searcher.phraseSearch("Cartoon illustrating the basic principle of PageRank");
+        List<Integer> phraseMatches = searcher.phraseSearch("Cartoon illustrating the basic principle of PageRank");
+        System.out.println("Phrase found in:");
+        for (Integer phraseMatch : phraseMatches) {
+            System.out.println("Document No " + phraseMatch);
+        }
     }
 }

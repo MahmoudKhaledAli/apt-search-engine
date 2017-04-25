@@ -34,6 +34,8 @@ public class Indexer {
                 + "VALUES ('" + word + "', '" + wordStem + "', " + place + ", "
                 + tag + ", " + ID + ")";
         searchEngineDB.executeQuery(sqlQuery);
+        System.out.println("Inserting word " + word + ", " + wordStem + ", " + place + ", "
+                + tag + ", " + ID );
     }
 
     public static boolean isHTML(Path filePath) {
