@@ -19,6 +19,7 @@ public class CrawlerEntry {
     private String docID;
     private java.sql.Timestamp LastCrawled;
     private long LastModified;
+    private int refCount;
 
     public int getID() {
         return ID;
@@ -43,13 +44,21 @@ public class CrawlerEntry {
     public void setLastCrawled(Timestamp LastCrawled) {
         this.LastCrawled = LastCrawled;
     }
-    
-    public long getLastModified(){
+
+    public long getLastModified() {
         return LastModified;
     }
-    
+
     public void setLastModified(long LastModified) {
         this.LastModified = LastModified;
+    }
+
+    public int getRefCount() {
+        return refCount;
+    }
+
+    public void setRefCount(int refCount) {
+        this.refCount = refCount;
     }
 
 }

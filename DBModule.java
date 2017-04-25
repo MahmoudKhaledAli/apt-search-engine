@@ -117,6 +117,7 @@ public class DBModule {
                 data.setDocID(rs.getString("docID"));
                 data.setLastCrawled(rs.getTimestamp("LastCrawled"));
                 data.setLastModified(rs.getLong("LastModified"));
+                data.setRefCount(rs.getInt("refCount"));
                 list.add(data);
             }
             return list;
