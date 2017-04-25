@@ -1,3 +1,4 @@
+
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
@@ -42,11 +43,11 @@ public class CrawlerEntry {
     public void setLastCrawled(Timestamp LastCrawled) {
         this.LastCrawled = LastCrawled;
     }
-
-    public long getLastModified() {
+    
+    public long getLastModified(){
         return LastModified;
     }
-
+    
     public void setLastModified(long LastModified) {
         this.LastModified = LastModified;
     }

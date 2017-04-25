@@ -30,6 +30,7 @@ public class DBModule {
                 + "INDEXED INTEGER default 0, "
                 + "LastCrawled TIMESTAMP not null, "
                 + "LastModified BIGINT not null, "
+                + "refCount BIGINT default 0,"
                 + "primary key (ID))";
         executeQuery(createTableQuery);
 
@@ -73,49 +74,6 @@ public class DBModule {
                 data.setDocID(rs.getString("docID"));
                 data.setLastCrawled(rs.getTimestamp("LastCrawled"));
                 data.setLastModified(rs.getLong("LastModified"));
-                list.add(data);
-            }
-            return list;
-        } catch (ClassNotFoundException | SQLException ex) {
-            Logger.getLogger(DBModule.class.getName()).log(Level.SEVERE, null, ex);
-            return null;
-        } finally {
-            //finally block used to close resources
-            try {
-                if (stmt != null) {
-                    closeConnection(conn);
-                }
-            } catch (SQLException ex) {
-                //do nothing
-            }
-            try {
-                if (conn != null) {
-                    closeConnection(conn);
-                }
-            } catch (SQLException se) {
-            }//end finally try
-        }//end try
-    }
-    
-    public List<IndexerEntry> executeIndexerReader(String sqlQuery) {
-
-        Statement stmt = null;
-        Connection conn = null;
-
-        try {
-            conn = getConnection();
-            stmt = conn.createStatement();
-
-            System.out.println(sqlQuery);
-            ResultSet rs = stmt.executeQuery(sqlQuery);
-            List<IndexerEntry> list = new ArrayList<>();
-            while (rs.next()) {
-                IndexerEntry data = new IndexerEntry();
-                data.setWord(rs.getString("word"));
-                data.setStem(rs.getString("stem"));
-                data.setPlace(rs.getInt("place"));
-                data.setTag(rs.getInt("tag"));
-                data.setDocument(rs.getInt("document"));
                 list.add(data);
             }
             return list;
