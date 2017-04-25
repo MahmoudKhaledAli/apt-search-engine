@@ -505,14 +505,7 @@ public class Crawler {
                     }
                 }
                 
-                synchronized (visitedLock) {
-                    if (docNumber >= maxPages) {
-                        break;
-                    }
-                    visitedPages.add(nextPage);
-                    setToFile(visitedPages, "visited.txt");
-
-                }
+                
                 synchronized (toVisitLock) {                    
                         listToFile(pagesToVisit, "toVisit.txt");
                 }
@@ -531,6 +524,17 @@ public class Crawler {
                             insertIntoDB(nextPage, oldNo, lastModified);
                         }
                 }
+                synchronized (visitedLock) {
+                    if (docNumber >= maxPages) {
+                        break;
+                    }
+                    visitedPages.add(nextPage);
+                    setToFile(visitedPages, "visited.txt");
+
+                }
+                    
+
+                
 
             } catch (IOException e) {
                 // TODO Auto-generated catch block
