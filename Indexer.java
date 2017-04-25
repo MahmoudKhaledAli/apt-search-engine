@@ -22,7 +22,6 @@ import org.jsoup.select.*;
 public class Indexer {
 
     static DBModule searchEngineDB;
-    static HashSet<String> stopWords;
     static Stemmer stemmer;
 
     public static void insertWord(String word, int ID, int place, int tag) {
@@ -35,22 +34,6 @@ public class Indexer {
                 + "VALUES ('" + word + "', '" + wordStem + "', " + place + ", "
                 + tag + ", " + ID + ")";
         searchEngineDB.executeQuery(sqlQuery);
-    }
-
-    public static void readStopWords() {
-        try {
-            final Scanner s = new Scanner(new File("stop-words.txt"));
-            while (s.hasNextLine()) {
-                final String line = s.nextLine();
-                stopWords.add(line);
-            }
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(Indexer.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
-    public static boolean isNotStopWord(String word) {
-        return !stopWords.contains(word);
     }
 
     public static boolean isHTML(Path filePath) {
@@ -126,10 +109,8 @@ public class Indexer {
 
         String[] words = text.split("[^a-zA-Z0-9]+");
         for (String word : words) {
-            if (word.length() > 1 && isNotStopWord(word)) {
-                int tagRank = convertTag(elem.tagName());
-                insertWord(word, ID, wordCount++, tagRank);
-            }
+            int tagRank = convertTag(elem.tagName());
+            insertWord(word, ID, wordCount++, tagRank);
         }
         return wordCount;
     }
@@ -139,9 +120,7 @@ public class Indexer {
         int wordCount = 0;
         String[] words = title.split("[^a-zA-Z0-9]+");
         for (String word : words) {
-            if (word.length() > 1 && isNotStopWord(word)) {
-                insertWord(word.toLowerCase(), ID, wordCount++, 0);
-            }
+            insertWord(word.toLowerCase(), ID, wordCount++, 0);
         }
         return wordCount;
     }
@@ -225,9 +204,8 @@ public class Indexer {
         wordCount = 0;
         String[] words = plainText.split("[^a-zA-Z0-9]+");
         for (int i = 0; i < words.length; i++) {
-            if (words[i].length() > 1 && isNotStopWord(words[i].toLowerCase())) {
-                insertWord(words[i].toLowerCase(), ID, i, 7);
-            }
+            insertWord(words[i].toLowerCase(), ID, i, 7);
+
         }
 
         markAsIndexed(ID);
@@ -243,9 +221,6 @@ public class Indexer {
         searchEngineDB = new DBModule();
         searchEngineDB.initDB();
         stemmer = new Stemmer();
-
-        stopWords = new HashSet<>();
-        readStopWords();
 
         ArrayList<Path> filePaths;
         while (true) {
