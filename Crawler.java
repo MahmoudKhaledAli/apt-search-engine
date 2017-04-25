@@ -80,25 +80,25 @@ public class Crawler {
 
             try {
                 pageURL = new URL(nextPage);
-
-                if (!isRobotSafe(pageURL)) {
-                    System.out.println("robot disallowed: " + pageURL.toString());
-                    invalidLink = true;
-                    continue;
-                }
-
                 URLConnection c = pageURL.openConnection();
                 String contentType = c.getContentType();
 
                 if (contentType == null) {
                     invalidLink = true;
+                    continue;
 
                 } else if (!contentType.contains("text/html;"))// only HTML docs
                 {
                     invalidLink = true;
+                    continue;
 
                 } else {
                     invalidLink = false;
+                }
+                if (!isRobotSafe(pageURL)) {
+                    System.out.println("robot disallowed: " + pageURL.toString());
+                    invalidLink = true;
+                    continue;
                 }
 
             } catch (MalformedURLException e) {
@@ -111,10 +111,10 @@ public class Crawler {
 
         } while (invalidLink);
 
-        synchronized (visitedLock) {
-            visitedPages.add(nextPage);
-
-        }
+//        synchronized (visitedLock) {
+//            visitedPages.add(nextPage);
+//
+//        }
         return nextPage;
     }
 
@@ -343,10 +343,10 @@ public class Crawler {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         String[] links = {
-            "http://www.bbc.com/news/technology"
+            "https://en.wikipedia.org/wiki/PageRank"
         };
 
-        Crawler myCrawler1 = new Crawler(links, 100);
+        Crawler myCrawler1 = new Crawler(links, 200);
         myCrawler1.init(5);
 
     }
@@ -385,6 +385,14 @@ public class Crawler {
             return searchEngineDB.executeScalar(selectQuery);
         }
     }
+    
+    void incrementReference(String link)
+    {
+        String incQuery = "UPDATE Crawler "
+                + "SET refCount = refCount + 1"
+                + "WHERE docID = '" + link + "'";
+        searchEngineDB.executeQuery(incQuery);
+    }
 
     public void insertIntoDB(String path, int ID, long lastModified) {
         String countQuery = "SELECT count(*)" + "FROM Crawler " + "WHERE ID = "
@@ -396,7 +404,7 @@ public class Crawler {
 
             java.util.Date today = new java.util.Date();
             java.sql.Timestamp currentTime = new java.sql.Timestamp(today.getTime());
-            String insertQuery = "INSERT INTO Crawler " + "values("
+            String insertQuery = "INSERT INTO Crawler(ID,docID,INDEXED,LastCrawled,LastModified) " + "values("
                     + Integer.toString(ID) + ", '" + path + "', 0, '"
                     + currentTime + "', " + lastModified + ")";
             searchEngineDB.executeQuery(insertQuery);
@@ -416,7 +424,7 @@ public class Crawler {
                 + "WHERE LastModified = 0 AND "
                 + "{fn TIMESTAMPDIFF(SQL_TSI_DAY,LastCrawled ,CURRENT_TIMESTAMP )}>=2";
         List<CrawlerEntry> crawlerEntries = searchEngineDB.executeCrawlerReader(getQuery);
-        System.out.println("No modify refreshing: " + crawlerEntries.size() + " links");
+        //System.out.println("No modify refreshing: " + crawlerEntries.size() + " links");
         for (CrawlerEntry entry : crawlerEntries) {
             String link = entry.getDocID();
             synchronized (toVisitLock) {
@@ -434,7 +442,7 @@ public class Crawler {
                 + "WHERE LastModified != 0 ";
         URL pageURL;
         List<CrawlerEntry> crawlerEntries = searchEngineDB.executeCrawlerReader(getQuery);
-        System.out.println("Modify refreshing: " + crawlerEntries.size() + " links");
+        //System.out.println("Modify refreshing: " + crawlerEntries.size() + " links");
         for (CrawlerEntry entry : crawlerEntries) {
             String link = entry.getDocID();
             pageURL = new URL(link);
@@ -482,6 +490,12 @@ public class Crawler {
 
                             continue;
                         }
+                        synchronized(visitedLock){
+                            if(visitedPages.contains(linkHref)){
+                                incrementReference(linkHref);                               
+                            }
+                        }
+                        
                         synchronized (toVisitLock) {
                             if (!pagesToVisit.contains(linkHref)) {
                                 pagesToVisit.add(linkHref);
@@ -490,6 +504,7 @@ public class Crawler {
 
                     }
                 }
+                
                 synchronized (visitedLock) {
                     if (docNumber >= maxPages) {
                         break;
@@ -498,9 +513,10 @@ public class Crawler {
                     setToFile(visitedPages, "visited.txt");
 
                 }
-                synchronized (toVisitLock) {
-                    synchronized (DBLock) {
+                synchronized (toVisitLock) {                    
                         listToFile(pagesToVisit, "toVisit.txt");
+                }
+                synchronized (DBLock) {
                         int oldNo = getOldDocNo(nextPage);
                         URL pageURL = new URL(nextPage);
                         URLConnection c = pageURL.openConnection();
@@ -514,9 +530,10 @@ public class Crawler {
                                     doc.toString());
                             insertIntoDB(nextPage, oldNo, lastModified);
                         }
-                    }
-
                 }
+                    
+
+                
 
             } catch (IOException e) {
                 // TODO Auto-generated catch block

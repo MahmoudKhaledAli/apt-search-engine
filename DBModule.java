@@ -30,6 +30,7 @@ public class DBModule {
                 + "INDEXED INTEGER default 0, "
                 + "LastCrawled TIMESTAMP not null, "
                 + "LastModified BIGINT not null, "
+                + "refCount BIGINT default 0,"
                 + "primary key (ID))";
         executeQuery(createTableQuery);
 
