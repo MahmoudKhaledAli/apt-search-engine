@@ -51,7 +51,7 @@ public class Crawler {
     private Object DBLock = new Object();
     private Object timeLock = new Object();
     private Object robotsLock = new Object();
-    private static int docNumber = 0;   
+    private static int docNumber = 0;
 
     public String getNextPage() {
 
@@ -204,16 +204,17 @@ public class Crawler {
     }
 
     class crawlerNoModifyFreqThread extends Thread {
+
         public void run() {
             while (true) {
                 try {
                     Thread.sleep(1000 * 60 * 60 * 24 * 2);
                 } catch (InterruptedException ex) {
                     ex.printStackTrace();
-                }                
-                synchronized (DBLock) {                    
-                        addToVisitNoModifyFromDB();                    
-                }      
+                }
+                synchronized (DBLock) {
+                    addToVisitNoModifyFromDB();
+                }
 
             }
         }
@@ -231,14 +232,14 @@ public class Crawler {
                     Thread.sleep(1000 * 60 * 60 * 2);
                 } catch (InterruptedException ex) {
                     ex.printStackTrace();
-                }                
+                }
                 synchronized (DBLock) {
                     try {
                         addToVisitModifyFromDB();
                     } catch (IOException ex) {
                         ex.printStackTrace();
                     }
-                }      
+                }
 
             }
         }
@@ -385,9 +386,8 @@ public class Crawler {
             return searchEngineDB.executeScalar(selectQuery);
         }
     }
-    
-    void incrementReference(String link)
-    {
+
+    void incrementReference(String link) {
         String incQuery = "UPDATE Crawler "
                 + "SET refCount = refCount + 1"
                 + "WHERE docID = '" + link + "'";
@@ -490,12 +490,12 @@ public class Crawler {
 
                             continue;
                         }
-                        synchronized(visitedLock){
-                            if(visitedPages.contains(linkHref)){
-                                incrementReference(linkHref);                               
+                        synchronized (visitedLock) {
+                            if (visitedPages.contains(linkHref)) {
+                                incrementReference(linkHref);
                             }
                         }
-                        
+
                         synchronized (toVisitLock) {
                             if (!pagesToVisit.contains(linkHref)) {
                                 pagesToVisit.add(linkHref);
@@ -504,25 +504,24 @@ public class Crawler {
 
                     }
                 }
-                
-                
-                synchronized (toVisitLock) {                    
-                        listToFile(pagesToVisit, "toVisit.txt");
+
+                synchronized (toVisitLock) {
+                    listToFile(pagesToVisit, "toVisit.txt");
                 }
                 synchronized (DBLock) {
-                        int oldNo = getOldDocNo(nextPage);
-                        URL pageURL = new URL(nextPage);
-                        URLConnection c = pageURL.openConnection();
-                        long lastModified = c.getLastModified();
-                        if (oldNo == 0) {
-                            createSiteHTML((++docNumber),
-                                    doc.toString());
-                            insertIntoDB(nextPage, docNumber, lastModified);
-                        } else {
-                            createSiteHTML(oldNo,
-                                    doc.toString());
-                            insertIntoDB(nextPage, oldNo, lastModified);
-                        }
+                    int oldNo = getOldDocNo(nextPage);
+                    URL pageURL = new URL(nextPage);
+                    URLConnection c = pageURL.openConnection();
+                    long lastModified = c.getLastModified();
+                    if (oldNo == 0) {
+                        createSiteHTML((++docNumber),
+                                doc.toString());
+                        insertIntoDB(nextPage, docNumber, lastModified);
+                    } else {
+                        createSiteHTML(oldNo,
+                                doc.toString());
+                        insertIntoDB(nextPage, oldNo, lastModified);
+                    }
                 }
                 synchronized (visitedLock) {
                     if (docNumber >= maxPages) {
@@ -532,9 +531,6 @@ public class Crawler {
                     setToFile(visitedPages, "visited.txt");
 
                 }
-                    
-
-                
 
             } catch (IOException e) {
                 // TODO Auto-generated catch block
