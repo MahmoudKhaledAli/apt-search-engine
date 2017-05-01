@@ -9,7 +9,6 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.*;
-import javafx.scene.chart.PieChart.Data;
 
 /**
  *
@@ -65,7 +64,6 @@ public class DBModule {
             conn = getConnection();
             stmt = conn.createStatement();
 
-            System.out.println(sqlQuery);
             ResultSet rs = stmt.executeQuery(sqlQuery);
             List<IndexerEntry> list = new ArrayList<>();
             while (rs.next()) {
@@ -108,7 +106,6 @@ public class DBModule {
             conn = getConnection();
             stmt = conn.createStatement();
 
-            System.out.println(sqlQuery);
             ResultSet rs = stmt.executeQuery(sqlQuery);
             List<CrawlerEntry> list = new ArrayList<>();
             while (rs.next()) {
@@ -151,7 +148,6 @@ public class DBModule {
             conn = getConnection();
             stmt = conn.createStatement();
 
-            System.out.println(sqlQuery);
             ResultSet rs = stmt.executeQuery(sqlQuery);
             if (rs.next()) {
                 return rs.getInt(1);
@@ -188,7 +184,6 @@ public class DBModule {
             conn = getConnection();
             stmt = conn.createStatement();
 
-            System.out.println(sqlQuery);
             stmt.executeUpdate(sqlQuery);
 
         } catch (SQLTransactionRollbackException se) {

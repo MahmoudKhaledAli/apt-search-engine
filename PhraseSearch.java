@@ -16,8 +16,8 @@ public class PhraseSearch {
 
     static DBModule searchEngineDB;
 
-    List<Integer> phraseSearch(String phrase) {
-        List<Integer> docs = new ArrayList<>();
+    public static List<PhraseSearchResult> phraseSearch(String phrase) {
+        List<PhraseSearchResult> results = new ArrayList<>();
         String[] words = phrase.split("[^a-zA-Z0-9]+");
 
         String sqlQuery = "SELECT * FROM INDEXER WHERE WORD = '" + words[0].toLowerCase() + "'";
@@ -44,20 +44,20 @@ public class PhraseSearch {
                 }
             }
             if (phraseFound) {
-                docs.add(firstWordMatch.getDocument());
+                results.add(new PhraseSearchResult(firstWordMatch.getDocument(),
+                        firstWordMatch.getTag()));
             }
         }
 
-        return docs;
+        return results;
     }
 
     public static void main(String[] args) {
         searchEngineDB = new DBModule();
         searchEngineDB.initDB();
-        PhraseSearch searcher = new PhraseSearch();
-        List<Integer> phraseMatches = searcher.phraseSearch("Cartoon illustrating the basic principle of PageRank");
+        List<PhraseSearchResult> phraseMatches = phraseSearch("visual form of recursion");
         System.out.println("Phrase found in:");
-        for (Integer phraseMatch : phraseMatches) {
+        for (PhraseSearchResult phraseMatch : phraseMatches) {
             System.out.println("Document No " + phraseMatch);
         }
     }
