@@ -16,9 +16,18 @@ import java.util.List;
  */
 public class PhraseSearch {
 
-    static DBModule searchEngineDB;
+    DBModule searchEngineDB = new DBModule();
+    private static PhraseSearch phraseSearcher = new PhraseSearch();
+    
+    private PhraseSearch() {
+        searchEngineDB.initDB();
+    }
+    
+    public static PhraseSearch getInstance() {
+        return phraseSearcher;
+    }
 
-    public static List<PhraseSearchResult> phraseSearch(String phrase) {
+    public List<PhraseSearchResult> phraseSearch(String phrase) {
         List<PhraseSearchResult> results = new ArrayList<>();
         String[] words = phrase.split("[^a-zA-Z0-9]+");
 
@@ -93,13 +102,13 @@ public class PhraseSearch {
     }
 
     public static void main(String[] args) {
-        searchEngineDB = new DBModule();
-        searchEngineDB.initDB();
-        List<PhraseSearchResult> phraseMatches = phraseSearch("search results");
+        PhraseSearch phraseSearcher = getInstance();
+        List<PhraseSearchResult> phraseMatches = phraseSearcher.phraseSearch("search results");
         System.out.println("Phrase found in:");
         for (PhraseSearchResult phraseMatch : phraseMatches) {
             System.out.println("Document No " + phraseMatch.getDocNo());
         }
-        Ranker.phraseRank(phraseMatches);
+        Ranker ranker = Ranker.getInstance();
+        ranker.phraseRank(phraseMatches);
     }
 }
