@@ -5,6 +5,7 @@
  */
 package indexer;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -13,16 +14,82 @@ import java.util.List;
  * @author Mahmoud
  */
 public class Ranker {
-    static DBModule db;
-    public static long getPagePopularity(int docNo) {
+
+    static DBModule db = new DBModule();
+    static Stemmer stemmer = new Stemmer();
+    private static Ranker ranker = new Ranker();
+    private Ranker() {
+        db.initDB();
+    };
+    public static Ranker getInstance(){
+        return ranker;
+    }
+
+    public long getPagePopularity(int docNo) {
         String query = "SELECT refCount "
                 + "FROM CRAWLER "
                 + "WHERE ID = " + docNo;
-        
-        return db.executeScalar(query);        
+
+        return db.executeScalar(query);
     }
-    
-    public static void phraseRank(List<PhraseSearchResult> results) {
+
+    public static double getPhraseRelevance(String phrase, int docNo) {
+        return 0.0d;
+    }
+
+    public static double getWordRelevance(String word, int docNo) {
+        return 0.0d;
+    }
+
+    public void tfidfRank(String[] query, int[] docNumbers) {
+        String[] terms = new String[query.length];
+        for (int i = 0; i < query.length; i++) {
+            for (int j = 0; j < query[i].length(); j++) {
+                stemmer.add(query[i].charAt(j));
+            }
+            stemmer.stem();
+            String wordStem = stemmer.toString();
+            terms[i] = wordStem;
+        }
+            
+
+        List<docEntry> docs = new ArrayList<>();
+        for (int i = 0; i < docNumbers.length; i++) {
+            docEntry newEntry = new docEntry();
+            newEntry.setID(docNumbers[i]);
+            docs.add(newEntry);
+        }
+        double[] idf = new double[terms.length];
+        String idfQuery;
+        for (int i = 0; i < idf.length; i++) {
+            idfQuery = "SELECT count(Distinct document) from INDEXER where word = '" + terms[i] + "'";
+
+            double termOccurence = db.executeScalar(idfQuery) + 1;
+            idf[i] = Math.log(docs.size() / termOccurence);
+            
+        }
+        for (docEntry doc : docs) {
+            int termsCount = db.executeScalar("SELECT COUNT(*) from INDEXER WHERE document =" + doc.getID());
+            double popularity = getPagePopularity(doc.getID());
+            double tfidfSum = 0.0f;
+            for (int j = 0; j < terms.length; j++) {
+                double termFreq = db.executeScalar("SELECT COUNT(word) from INDEXER WHERE document =" + doc.getID() + " AND"
+                        + " word = '" + terms[j] + "'");
+                int termTag = db.executeScalar("SELECT Tag from INDEXER WHERE document = " + doc.getID()+" "
+                        + " AND word ='" + terms[j] + "'");
+                double tagWeight = 1/(1+termTag);
+                tfidfSum += termFreq * idf[j] * tagWeight / termsCount;
+                
+            }
+
+            doc.setRelevance(tfidfSum * popularity);
+        }
+        Collections.sort(docs);
+        for (int i = 0; i < docNumbers.length; i++) {
+            docNumbers[i] = docs.get(i).getID();
+        }
+    }
+    public void phraseRank(List<PhraseSearchResult> results) {
         db = new DBModule();
         db.initDB();
         for (PhraseSearchResult result : results) {
@@ -30,49 +97,20 @@ public class Ranker {
         }
         Collections.sort(results);
     }
-    
-    public void tfidfRank(String []terms,List<CrawlerEntry> docs){
-        //1- get all indexed documents
-        //2- calculate the sum of the tf-idf value of each term for each document
-        //3- sort documents based on final tf-idf value       
-        
-        
-        double [] idf = new double[terms.length];
-        String idfQuery;
-        for(int i = 0;i<idf.length;i++){
-            idfQuery="SELECT count(Distinct document) from INDEXER where word = '" + terms[i] + "'";
-            
-            double termOccurence = db.executeScalar(idfQuery) + 1;
-            idf[i]=Math.log(docs.size()/termOccurence);
-            //System.out.println(idf[i]);
-        }
-        for (CrawlerEntry doc : docs) {
-            int termsCount=db.executeScalar("SELECT COUNT(*) from INDEXER WHERE document =" + doc.getID());
-            double popularity = getPagePopularity(doc.getID());
-            double tfidfSum = 0.0f;
-            for(int j =0;j<terms.length;j++){
-                double termFreq=db.executeScalar("SELECT COUNT(word) from INDEXER WHERE document =" + doc.getID()+" AND"
-                        + " word = '" + terms[j]+"'");
-                //System.out.println(termFreq);
-                tfidfSum+=termFreq*idf[j]/termsCount;  
-                //System.out.println(idf[j]);
-            }
-            
-            doc.setRelevance(tfidfSum*popularity);
-        }
-        Collections.sort(docs);
-    }
-    public static void main(String[] args) {
-        db = new DBModule();
-        db.initDB();
+
+    public static void main(String[] args) {        
         String indexedQuery = "SELECT * FROM Crawler WHERE Indexed = 1";
         List<CrawlerEntry> docs = db.executeCrawlerReader(indexedQuery);
-        Ranker myRanker = new Ranker();
-        String [] terms = {"yahoo","rank"};
-        myRanker.tfidfRank(terms, docs);
-        for(CrawlerEntry doc : docs){
-            System.out.println(doc.getRelevance()+", " + doc.getID());
+        int [] docNums = new int[docs.size()];
+        for(int i=0;i<docs.size();i++){
+            docNums[i] = docs.get(i).getID();
+        }
+        Ranker myRanker = Ranker.getInstance();
+        String[] terms = {"yahoo", "ranking"};
+      myRanker.tfidfRank(terms, docNums);
+        for(int i=0;i<docs.size();i++){
+            System.out.println(docNums[i]);
         }
     }
-    
+
 }

@@ -13,23 +13,15 @@ import java.sql.Timestamp;
  *
  * @author Mahmoud
  */
-public class CrawlerEntry implements Comparable<CrawlerEntry>{
+public class CrawlerEntry {
 
     private int ID;
     private String docID;
     private java.sql.Timestamp LastCrawled;
     private long LastModified;
-    private int refCount;
-    private double relevance;
-    
-    
+    private int refCount; 
 
-    public double getRelevance(){
-        return relevance;
-    }
-    public void setRelevance(double tfidf){
-        this.relevance = tfidf;
-    }
+    
     public int getID() {
         return ID;
     }
@@ -70,14 +62,6 @@ public class CrawlerEntry implements Comparable<CrawlerEntry>{
         this.refCount = refCount;
     }
 
-    @Override
-    public int compareTo(CrawlerEntry o) {
-        
-        if(this.relevance>o.relevance)
-            return 1;
-        else if(this.relevance<o.relevance)
-            return -1;
-        return 0;
-    }
+    
 
 }
