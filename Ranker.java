@@ -53,9 +53,9 @@ public class Ranker {
         }
             
 
-        List<docEntry> docs = new ArrayList<>();
+        List<DocEntry> docs = new ArrayList<>();
         for (int i = 0; i < docNumbers.length; i++) {
-            docEntry newEntry = new docEntry();
+            DocEntry newEntry = new DocEntry();
             newEntry.setID(docNumbers[i]);
             docs.add(newEntry);
         }
@@ -68,7 +68,7 @@ public class Ranker {
             idf[i] = Math.log(docs.size() / termOccurence);
             
         }
-        for (docEntry doc : docs) {
+        for (DocEntry doc : docs) {
             int termsCount = db.executeScalar("SELECT COUNT(*) from INDEXER WHERE document =" + doc.getID());
             double popularity = getPagePopularity(doc.getID());
             double tfidfSum = 0.0f;
