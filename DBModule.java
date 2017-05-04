@@ -97,6 +97,44 @@ public class DBModule {
         }//end try
     }
 
+    public List<IndexerEntry> executeIndexerReaderID(String sqlQuery) {
+
+        Statement stmt = null;
+        Connection conn = null;
+
+        try {
+            conn = getConnection();
+            stmt = conn.createStatement();
+
+            ResultSet rs = stmt.executeQuery(sqlQuery);
+            List<IndexerEntry> list = new ArrayList<>();
+            while (rs.next()) {
+                IndexerEntry data = new IndexerEntry();
+                data.setDocument(rs.getInt("document"));
+                list.add(data);
+            }
+            return list;
+        } catch (ClassNotFoundException | SQLException ex) {
+            Logger.getLogger(DBModule.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
+        } finally {
+            //finally block used to close resources
+            try {
+                if (stmt != null) {
+                    closeConnection(conn);
+                }
+            } catch (SQLException ex) {
+                //do nothing
+            }
+            try {
+                if (conn != null) {
+                    closeConnection(conn);
+                }
+            } catch (SQLException se) {
+            }//end finally try
+        }//end try
+    }
+
     public List<CrawlerEntry> executeCrawlerReader(String sqlQuery) {
 
         Statement stmt = null;

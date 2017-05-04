@@ -13,10 +13,19 @@ public class PhraseSearchResult {
 
     int docNo;
     int tag;
+    double rank;
 
     public PhraseSearchResult(int docNo, int tag) {
         this.docNo = docNo;
         this.tag = tag;
+    }
+
+    public double getRank() {
+        return rank;
+    }
+
+    public void setRank(double rank) {
+        this.rank = rank;
     }
 
     public int getDocNo() {
@@ -34,5 +43,5 @@ public class PhraseSearchResult {
     public void setTag(int tag) {
         this.tag = tag;
     }
-    
+
 }
