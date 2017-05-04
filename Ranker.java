@@ -14,7 +14,7 @@ import java.util.List;
  */
 public class Ranker {
     static DBModule db;
-    public long getPagePopularity(int docNo) {
+    public static long getPagePopularity(int docNo) {
         String query = "SELECT refCount "
                 + "FROM CRAWLER "
                 + "WHERE ID = " + docNo;
@@ -22,18 +22,12 @@ public class Ranker {
         return db.executeScalar(query);        
     }
     
-    
-    public static double getPhraseRelevance(String phrase, int docNo) {
-        return 0.0d;
-    }
-    
-    public static double getWordRelevance(String word, int docNo) {
-        return 0.0d;
-    }
-    
     public static void phraseRank(List<PhraseSearchResult> results) {
         db = new DBModule();
         db.initDB();
+        for (PhraseSearchResult result : results) {
+            result.setRank(getPagePopularity(result.getDocNo()));
+        }
         Collections.sort(results);
     }
     

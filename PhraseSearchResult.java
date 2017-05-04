@@ -25,7 +25,6 @@ public class PhraseSearchResult implements Comparable<PhraseSearchResult> {
         this.docNo = docNo;
         this.tag = tag;
         this.count = count;
-        this.rank = (8 - tag) * count; 
     }
 
     public int getCount() {
@@ -40,8 +39,8 @@ public class PhraseSearchResult implements Comparable<PhraseSearchResult> {
         return rank;
     }
 
-    public void setRank() {
-        this.rank = (8 - tag) * count;
+    public void setRank(double relevance) {
+        this.rank = (8 - tag) * count * relevance;
     }
 
     public int getDocNo() {
