@@ -72,7 +72,20 @@ public class PhraseSearch {
             }
         }
         
-        return results;
+        List<PhraseSearchResult> finalResults = new ArrayList<>();
+        for (PhraseSearchResult result1 : results) {
+            int count = 0;
+            int tag = 10;
+            for (PhraseSearchResult result2 : results) {
+                if (result1.getDocNo() == result2.getDocNo()) {
+                    count++;
+                    tag = min(tag, min(result1.getTag(), result2.getTag()));
+                }
+            }
+            finalResults.add(new PhraseSearchResult(result1.getDocNo(), 
+            tag, count));
+        }
+        return finalResults;
     }
 
     public static void main(String[] args) {

@@ -13,11 +13,26 @@ public class PhraseSearchResult {
 
     int docNo;
     int tag;
+    int count;
     double rank;
 
     public PhraseSearchResult(int docNo, int tag) {
         this.docNo = docNo;
         this.tag = tag;
+    }
+
+    public PhraseSearchResult(int docNo, int tag, int count) {
+        this.docNo = docNo;
+        this.tag = tag;
+        this.count = count;
+    }
+
+    public int getCount() {
+        return count;
+    }
+
+    public void setCount(int count) {
+        this.count = count;
     }
 
     public double getRank() {
