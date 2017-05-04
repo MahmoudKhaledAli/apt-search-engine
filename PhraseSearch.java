@@ -21,34 +21,34 @@ public class PhraseSearch {
     public static List<PhraseSearchResult> phraseSearch(String phrase) {
         List<PhraseSearchResult> results = new ArrayList<>();
         String[] words = phrase.split("[^a-zA-Z0-9]+");
-        
+
         String firstQuery = "";
-        
+
         for (int i = 0; i < words.length; i++) {
             firstQuery += "SELECT DOCUMENT FROM INDEXER WHERE WORD = '" + words[i].toLowerCase() + "'";
             if (i != words.length - 1) {
-               firstQuery += "\nINTERSECT\n"; 
+                firstQuery += "\nINTERSECT\n";
             }
         }
-        
+
         List<IndexerEntry> allPossibleDocs = searchEngineDB.executeIndexerReaderID(firstQuery);
-        
+
         String secondQuery = "SELECT * FROM INDEXER WHERE WORD = '" + words[0].toLowerCase()
                 + "' AND DOCUMENT IN (";
-        
+
         for (int i = 0; i < allPossibleDocs.size(); i++) {
             secondQuery += allPossibleDocs.get(i).getDocument();
             if (i != allPossibleDocs.size() - 1) {
                 secondQuery += ", ";
             }
         }
-        
+
         secondQuery += ')';
-        
+
         List<IndexerEntry> firstWordMatches = searchEngineDB.executeIndexerReader(secondQuery);
 
         boolean phraseFound = true;
-        
+
         for (IndexerEntry firstWordMatch : firstWordMatches) {
             phraseFound = true;
             for (int i = 1; i < words.length; i++) {
@@ -71,19 +71,23 @@ public class PhraseSearch {
                         firstWordMatch.getTag()));
             }
         }
-        
+
         List<PhraseSearchResult> finalResults = new ArrayList<>();
         for (PhraseSearchResult result1 : results) {
-            int count = 0;
-            int tag = 10;
+            if (result1.getDocNo() == 0) {
+                continue;
+            }
+            int count = 1;
+            int tag = result1.getTag();
             for (PhraseSearchResult result2 : results) {
-                if (result1.getDocNo() == result2.getDocNo()) {
+                if (result1.getDocNo() == result2.getDocNo() && result1 != result2) {
                     count++;
                     tag = min(tag, min(result1.getTag(), result2.getTag()));
+                    result2.setDocNo(0);
                 }
             }
-            finalResults.add(new PhraseSearchResult(result1.getDocNo(), 
-            tag, count));
+            finalResults.add(new PhraseSearchResult(result1.getDocNo(),
+                    tag, count));
         }
         return finalResults;
     }
@@ -91,10 +95,11 @@ public class PhraseSearch {
     public static void main(String[] args) {
         searchEngineDB = new DBModule();
         searchEngineDB.initDB();
-        List<PhraseSearchResult> phraseMatches = phraseSearch("visual form of recursion");
+        List<PhraseSearchResult> phraseMatches = phraseSearch("search results");
         System.out.println("Phrase found in:");
         for (PhraseSearchResult phraseMatch : phraseMatches) {
             System.out.println("Document No " + phraseMatch.getDocNo());
         }
+        Ranker.phraseRank(phraseMatches);
     }
 }

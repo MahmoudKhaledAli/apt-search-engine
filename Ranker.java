@@ -31,6 +31,12 @@ public class Ranker {
         return 0.0d;
     }
     
+    public static void phraseRank(List<PhraseSearchResult> results) {
+        db = new DBModule();
+        db.initDB();
+        Collections.sort(results);
+    }
+    
     public void tfidfRank(String []terms,List<CrawlerEntry> docs){
         //1- get all indexed documents
         //2- calculate the sum of the tf-idf value of each term for each document

@@ -9,7 +9,7 @@ package indexer;
  *
  * @author Mahmoud
  */
-public class PhraseSearchResult {
+public class PhraseSearchResult implements Comparable<PhraseSearchResult> {
 
     int docNo;
     int tag;
@@ -25,6 +25,7 @@ public class PhraseSearchResult {
         this.docNo = docNo;
         this.tag = tag;
         this.count = count;
+        this.rank = (8 - tag) * count; 
     }
 
     public int getCount() {
@@ -39,8 +40,8 @@ public class PhraseSearchResult {
         return rank;
     }
 
-    public void setRank(double rank) {
-        this.rank = rank;
+    public void setRank() {
+        this.rank = (8 - tag) * count;
     }
 
     public int getDocNo() {
@@ -57,6 +58,17 @@ public class PhraseSearchResult {
 
     public void setTag(int tag) {
         this.tag = tag;
+    }
+
+    @Override
+    public int compareTo(PhraseSearchResult o) {
+
+        if (this.rank > o.rank) {
+            return -1;
+        } else if (this.rank < o.rank) {
+            return 1;
+        }
+        return 0;
     }
 
 }
