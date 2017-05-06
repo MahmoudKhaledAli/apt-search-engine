@@ -75,21 +75,24 @@ public class Ranker {
             for (int j = 0; j < terms.length; j++) {
                 double termFreq = db.executeScalar("SELECT COUNT(word) from INDEXER WHERE document =" + doc.getID() + " AND"
                         + " word = '" + terms[j] + "'");
+                //System.out.println("term freq: " + termFreq);
                 int termTag = db.executeScalar("SELECT Tag from INDEXER WHERE document = " + doc.getID()+" "
                         + " AND word ='" + terms[j] + "'" + " ORDER BY Tag");
-                double tagWeight = 1/(1+termTag);
+                double tagWeight = 1.0f/(1.0f+(double)termTag);
+                //System.out.println("tag weight: " + tagWeight);
                 tfidfSum += termFreq * idf[j] * tagWeight / termsCount;
                 double stemFreq = db.executeScalar("SELECT COUNT(word) from INDEXER WHERE document =" + doc.getID() + " AND"
                         + " word != '" + terms[j] + "'" + " AND stem = '"+stems[j] + "'");
                 int stemTag = db.executeScalar("SELECT Tag from INDEXER WHERE document = " + doc.getID()+" "
                         + " AND word !='" + terms[j] + "'" + " AND stem = '" + stems[j] + "'" + " ORDER BY Tag");
-                double tagStemWeight = 1/(1+stemTag);
-                tfidfSum += stemFreq * idf[j] * 0.5 * tagStemWeight / termsCount;
+                double tagStemWeight = 1.0f/(1.0f+(double)stemTag);
+                tfidfSum += stemFreq * idf[j] * 0.5f * tagStemWeight / termsCount;
                 
                 
             }
 
             doc.setRelevance(tfidfSum * popularity);
+            //System.out.println(doc.getRelevance());
         }
         Collections.sort(docs);
         for (int i = 0; i < docNumbers.length; i++) {
