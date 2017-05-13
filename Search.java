@@ -90,7 +90,7 @@ public class Search extends HttpServlet {
 
         request.setAttribute("results", resultsJSP);
         request.setAttribute("query", query);
-        RequestDispatcher view = request.getRequestDispatcher("test.jsp");
+        RequestDispatcher view = request.getRequestDispatcher("results.jsp");
         view.forward(request, response);
     }
 
