@@ -40,7 +40,7 @@ public class PhraseSearchResult implements Comparable<PhraseSearchResult> {
     }
 
     public void setRank(double relevance) {
-        this.rank = (8 - tag) * count * relevance;
+        this.rank = (1 / (1 + tag)) * count * relevance;
     }
 
     public int getDocNo() {

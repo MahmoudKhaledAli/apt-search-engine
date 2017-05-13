@@ -17,7 +17,7 @@ import java.util.logging.*;
 public class DBModule {
 
     // JDBC driver name and database URL
-    static final String JDBC_DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
+    static final String JDBC_DRIVER = "org.apache.derby.jdbc.ClientDriver";
     static final String DB_URL = "jdbc:derby://localhost:1527/SearchEngineDB;create=true";
 
     public void initDB() {
@@ -40,6 +40,14 @@ public class DBModule {
                 + "primary key (WORD, DOCUMENT, PLACE, TAG))";
 
         executeQuery(createTableQuery);
+
+        createTableQuery = "create table \"APP\".QUERY\n"
+                + "(\n"
+                + "	QUERY VARCHAR(1000) not null primary key,\n"
+                + "	COUNT INTEGER\n"
+                + ")";
+
+        executeQuery(createTableQuery);
     }
 
     public Connection getConnection() throws ClassNotFoundException, SQLException {
@@ -53,6 +61,43 @@ public class DBModule {
 
     public void closeConnection(Connection conn) throws SQLException {
         conn.close();
+    }
+
+    public List<String> executeQueriesReader(String sqlQuery) {
+
+        Statement stmt = null;
+        Connection conn = null;
+
+        try {
+            conn = getConnection();
+            stmt = conn.createStatement();
+
+            ResultSet rs = stmt.executeQuery(sqlQuery);
+            List<String> list = new ArrayList<>();
+            while (rs.next()) {
+                String data = rs.getString("query");
+                list.add(data);
+            }
+            return list;
+        } catch (ClassNotFoundException | SQLException ex) {
+            Logger.getLogger(DBModule.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
+        } finally {
+            //finally block used to close resources
+            try {
+                if (stmt != null) {
+                    closeConnection(conn);
+                }
+            } catch (SQLException ex) {
+                //do nothing
+            }
+            try {
+                if (conn != null) {
+                    closeConnection(conn);
+                }
+            } catch (SQLException se) {
+            }//end finally try
+        }//end try
     }
 
     public List<IndexerEntry> executeIndexerReader(String sqlQuery) {

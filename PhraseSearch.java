@@ -102,8 +102,9 @@ public class PhraseSearch {
     }
 
     public static void main(String[] args) {
-        PhraseSearch phraseSearcher = getInstance();
-        List<PhraseSearchResult> phraseMatches = phraseSearcher.phraseSearch("search results");
+        PhraseSearch phraseSearch = getInstance();
+        boolean what = "Ask".contains("search results");
+        List<PhraseSearchResult> phraseMatches = phraseSearch.phraseSearch("search results");
         System.out.println("Phrase found in:");
         for (PhraseSearchResult phraseMatch : phraseMatches) {
             System.out.println("Document No " + phraseMatch.getDocNo());

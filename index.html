@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            input::-webkit-calendar-picker-indicator {
+                display: none;
+            }
+            .navbar-brand {
+                padding: 0 15px;
+                height: 80px;
+                line-height: 80px;
+            }
+
+            .navbar-toggle {
+                /* (80px - button height 34px) / 2 = 23px */
+                margin-top: 23px;
+                padding: 9px 10px !important;
+            }
+
+            @media (min-width: 768px) {
+                .navbar-nav > li > a {
+                    /* (80px - line-height of 27px) / 2 = 26.5px */
+                    padding-top: 26.5px;
+                    padding-bottom: 26.5px;
+                    line-height: 27px;
+                }
+            }
+        </style>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+        <script>
+            function getSuggestions() {
+                var text = $("#searchbox").val();
+                $.get("/SearchEngine/Suggestions", {queryso: text}, function (data) {
+                    for (var i = 0; i < data.suggestions.length; i++) {
+                        console.log(text);
+                        console.log(data.suggestions[i]);
+                        $("#option" + (i + 1)).show();
+                        $("#option" + (i + 1)).val(data.suggestions[i]);
+                        $("#option" + (i + 1)).text(data.suggestions[i]);
+                    }
+                    for (var i = data.suggestions.length + 1; i < 6; i++) {
+                        console.log("#option" + i);
+                        $("#option" + i).hide();
+                        $("#option" + i).text("");
+                        $("#option" + i).val("");
+                    }
+                });
+            }
+            $(document).ready(function () {
+                $("#option1").hide();
+                $("#option2").hide();
+                $("#option3").hide();
+                $("#option4").hide();
+                $("#option5").hide();
+            });
+        </script>
+        <title>7oodle Search</title>
+    </head>
+    <body> 
+        <div align="center">
+            <img src="Logo.png" height='100' alt="Logo" style="margin-top:200px;margin-bottom:0px"/>
+            <form action="Search" method="POST">
+                <input list="suggest" type="text" name="query" id="searchbox" style="width:550px;height:40px"
+                       class="form-control" oninput="getSuggestions()"   autocomplete="off"/>
+                <datalist id ="suggest">
+                    <option id='option1' value=''>w</option>
+                    <option id='option2' value=''>w</option>
+                    <option id='option3' value=''>w</option>
+                    <option id='option4' value=''>w</option>
+                    <option id='option5' value=''>w</option>
+                </datalist>
+                <br>
+                <button type="submit" value="Search" class="btn btn-lg">
+                    <span class="glyphicon glyphicon-search"></span> Search
+                </button>
+            </form>
+        </div>
+    </body>
+</html>
