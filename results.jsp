@@ -70,6 +70,12 @@
         <script>
             function nextPage() {
                 page++;
+                for (var i = 0; i < <%=results.size()%> / 10 + 1; i++) {
+                    $("#link" + i).hide();
+                }
+                $("#link" + (page - 1)).show();
+                $("#link" + (page - 2)).show();
+                $("#link" + (page)).show();
                 if (page === 1) {
                     $("#pagprev").hide();
                 } else {
@@ -77,6 +83,7 @@
                 }
                 if (page === <%=results.size() / 10%> + 1) {
                     $("#pagnext").hide();
+                    $("#link" + (page - 3)).show();
                 } else {
                     $("#pagnext").show();
                 }
@@ -95,9 +102,15 @@
             }
             function prevPage() {
                 page--;
-                console.log(page);
+                for (var i = 0; i < <%=results.size()%> / 10 + 1; i++) {
+                    $("#link" + i).hide();
+                }
+                $("#link" + (page - 1)).show();
+                $("#link" + (page - 2)).show();
+                $("#link" + (page)).show();
                 if (page === 1) {
                     $("#pagprev").hide();
+                    $("#link" + (page + 1)).show();
                 } else {
                     $("#pagprev").show();
                 }
@@ -120,7 +133,23 @@
                 }
             }
             function showHide(j) {
-                page = j + 1;
+                page = j / 10 + 1;
+                for (var i = 0; i < <%=results.size()%> / 10 + 1; i++) {
+                    $("#link" + i).hide();
+                }
+                if (j === <%=results.size()%> / 10 + 1) {
+                    $("#link" + (j / 10)).show();
+                    $("#link" + ((j / 10) - 1)).show();
+                    $("#link" + ((j / 10) - 2)).show();
+                } else if (j === 0) {
+                    $("#link0").show();
+                    $("#link1").show();
+                    $("#link2").show();
+                } else {
+                    $("#link" + (j / 10)).show();
+                    $("#link" + ((j / 10) - 1)).show();
+                    $("#link" + ((j / 10) + 1)).show();
+                }
                 if (page === 1) {
                     $("#pagprev").hide();
                 } else {
@@ -154,6 +183,12 @@
                 $("#option3").hide();
                 $("#option4").hide();
                 $("#option5").hide();
+                for (var i = 0; i < <%=results.size()%> / 10 + 1; i++) {
+                    $("#link" + i).hide();
+                }
+                $("#link0").show();
+                $("#link1").show();
+                $("#link2").show();
             });
         </script>
     </head>

@@ -45,9 +45,12 @@ public class Search extends HttpServlet {
         String query = request.getParameter("query");
         // Set response content type
         response.setContentType("text/html");
-
         query = query.trim();
+        request.setAttribute("query", query);
         String[] WordArray = query.split("[^a-zA-Z0-9]+");
+        for (int i = 0; i < WordArray.length; i++) {
+            WordArray[i] = WordArray[i].toLowerCase();
+        }
         boolean phrase;
 
         List<Integer> docs = new ArrayList<>();
@@ -89,55 +92,88 @@ public class Search extends HttpServlet {
         }
 
         request.setAttribute("results", resultsJSP);
-        request.setAttribute("query", query);
         RequestDispatcher view = request.getRequestDispatcher("results.jsp");
         view.forward(request, response);
     }
 
     private String getSnippet(String query, Document doc, boolean phrase) {
-        String[] sentences = doc.getElementsByTag("body").text().split("\\.|\\?|!");
-        String snippet = "";
-        int count = 0;
-        String[] words = query.split("[^a-zA-Z0-9]+");
-        if (!phrase) {
-            for (String sentence : sentences) {
-                String sentenceLook = sentence.toLowerCase();
-                if (count > 1) {
-                    break;
-                }
-                for (String word : words) {
-                    if (sentenceLook.contains(word)) {
-                        int index = sentenceLook.indexOf(word);
-                        int indexEnd = index + word.length();
-                        sentence = sentence.substring(0, index) + "<b>"
-                                + sentence.substring(index, indexEnd)
-                                + "</b>" + sentence.substring(indexEnd);
-                        snippet += sentence;
-                        snippet += ". ";
-                        count++;
+        try {
+            String[] sentences = doc.getElementsByTag("body").text().split("\\.|\\?|!");
+            String snippet = "";
+            int count = 0;
+            String[] words = query.split("[^a-zA-Z0-9]+");
+            Stemmer stemmer = new Stemmer();
+            if (!phrase) {
+                for (String sentence : sentences) {
+                    String sentenceLook = sentence.toLowerCase();
+                    if (count > 1) {
                         break;
+                    }
+                    for (String word : words) {
+                        for (int i = 0; i < word.length(); i++) {
+                            stemmer.add(word.charAt(i));
+                        }
+                        stemmer.stem();
+                        String stemmed = stemmer.toString();
+                        if (sentenceLook.contains(stemmed.toLowerCase()) || sentenceLook.contains(word.toLowerCase())) {
+                            if (sentence.length() <= 200) {
+                                snippet += sentence;
+                                snippet += ". ";
+                                count++;
+                                break;
+                            } else {
+                                int index1 = sentenceLook.indexOf(stemmed.toLowerCase());
+                                if (index1 == -1) {
+                                    index1 = sentenceLook.indexOf(word.toLowerCase());
+                                }
+                                String toAdd = sentence.substring(
+                                        (index1 - 50 < 0) ? index1 : index1 - 50,
+                                        (index1 + 100 >= sentence.length()) ? sentence.length() : index1 + 100);
+                                int index2 = toAdd.lastIndexOf(' ');
+                                toAdd = toAdd.substring(0, (index2 == -1) ? toAdd.length() : index2);
+                                count = 2;
+                                snippet += toAdd;
+                                snippet += " ...";
+                                break;
+                            }
+                        }
+                    }
+                }
+            } else {
+                for (String sentence : sentences) {
+                    String sentenceLook = sentence.toLowerCase();
+                    if (sentenceLook.contains(query.toLowerCase())) {
+                        if (sentence.length() > 200) {
+                            sentence = sentence.substring(0, 200);
+                            int index = sentence.lastIndexOf(' ');
+                            sentence = sentence.substring(0,
+                                    (index != -1) ? index : 200);
+                            sentence += " ..";
+                        }
+                        snippet = sentence;
+                        snippet = snippet.replaceAll("((?i)" + query + ")", "<b>$1</b>");
+                        return snippet + ".";
                     }
                 }
             }
-        } else {
-            for (String sentence : sentences) {
-                String sentenceLook = sentence.toLowerCase();
-                if (sentenceLook.contains(query.toLowerCase())) {
-                    int index = sentenceLook.indexOf(query.toLowerCase());
-                    int indexEnd = index + query.length();
-                    sentence = sentence.substring(0, index) + "<b>"
-                            + sentence.substring(index, indexEnd)
-                            + "</b>" + sentence.substring(indexEnd);
-                    return sentence;
+            for (String word : words) {
+                for (int i = 0; i < word.length(); i++) {
+                    stemmer.add(word.charAt(i));
                 }
+                stemmer.stem();
+                String stemmed = stemmer.toString();
+                snippet = snippet.replaceAll("((?i)" + word + ")", "<b>$1</b>");
+                snippet = snippet.replaceAll("((?i)" + stemmed + ")", "<b>$1</b>");
             }
+            return snippet;
+        } catch (Exception e) {
+            return "";
         }
-        return snippet;
     }
 
     private File getFile(int docID) {
         ServletContext context = getServletContext();
-        return new File(context.getRealPath("/docs/" + docID + ".html"));
+        return new File(context.getRealPath("docs/" + docID + ".html"));
     }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
